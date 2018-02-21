@@ -34,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView countText;
 
     private int count;
+    private int loaderCount;
+    private int pageCount;
+
     private boolean lastFlight = false;
     private String mCurrentParsedString;
 
@@ -51,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
             //If no database has been created, start flight info extraction.
             arrayList = new ArrayList<>();
             count = 0;
-            startFlightExtraction();
-
+            loaderCount = 12;
+            checkTimeFrame();
         }
     }
 
@@ -62,7 +65,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void startFlightExtraction() {
+    //Check time frame.
+    private void checkTimeFrame() {
+        int timeFrame = TimeManager.timeEtraction();
+        pageCount = (timeFrame - 12) + 1;
+
+        String parseString = FlightUriBuilder.buildUri(pageCount);
+        startFlightExtraction(parseString);
+
+
+    }
+
+    private void startFlightExtraction(String uri) {
         //Use Service
 //        Intent startExtraction = new Intent(this, FlightIntentService.class);
 //        startExtraction.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION);
@@ -70,19 +84,25 @@ public class MainActivity extends AppCompatActivity {
 
         //Use loader
         taskText.setText(R.string.tv_extract_flights);
+
+        Bundle bundle = new Bundle();
+        bundle.putString("parse", uri);
         LoaderManager loaderManager = getSupportLoaderManager();
         Loader<FlightObject> getFlightLoader = loaderManager.getLoader(EXTRACT_FLIGHTS_LOADER);
         if (getFlightLoader == null) {
-            loaderManager.initLoader(EXTRACT_FLIGHTS_LOADER, null, getFlightObject);
+            loaderManager.initLoader(EXTRACT_FLIGHTS_LOADER, bundle, getFlightObject);
         } else {
-            loaderManager.restartLoader(EXTRACT_FLIGHTS_LOADER, null, getFlightObject);
+            loaderManager.restartLoader(EXTRACT_FLIGHTS_LOADER, bundle, getFlightObject);
         }
     }
 
     public void parseRemainingFlights(int index, String parse) {
+        if (index < 0) {
+            String a = "";
+        }
         taskText.setText(R.string.tv_extract_flights);
         Bundle bundle = new Bundle();
-        bundle.putInt("index",index);
+        bundle.putInt("index", index);
         bundle.putString("parse", parse);
         LoaderManager loaderManager = getSupportLoaderManager();
         Loader<FlightObject> getFlightLoader = loaderManager.getLoader(EXTRACT_FLIGHTS_STRING_LOADER);
@@ -99,23 +119,48 @@ public class MainActivity extends AppCompatActivity {
             new LoaderManager.LoaderCallbacks<FlightObject>() {
                 @Override
                 public Loader<FlightObject> onCreateLoader(int id, Bundle args) {
-                    return new GetFlightObjectLoader(MainActivity.this, "https://www.airport-la.com/lax/arrivals");
+
+                    String uri = args.getString("parse");
+                    return new GetFlightObjectLoader(MainActivity.this, uri);
                 }
 
                 @Override
                 public void onLoadFinished(Loader<FlightObject> loader, FlightObject data) {
-                    flightNameText.setText(data.getFlightName());
-                    arrayList.add(data);
-                    count++;
-                    countText.setText("" + count);
-                    mCurrentParsedString = data.getParsedString();
-                    if (data.getIsLastFlight()) {
+
+                    if (data.getFlightName().equals("null")) {
                         lastFlight = true;
                         taskText.setText("");
-                    } else if (!data.getIsLastFlight()) {
-                        int index = data.getNextFlightIndex();
-                        String parse = data.getParsedString();
-                        parseRemainingFlights(index, parse);
+
+                        loaderCount--;
+                        if (loaderCount > 0) {
+                            pageCount++;
+                            String parseString = FlightUriBuilder.buildUri(pageCount);
+                            if (parseString.equals("https://www.airport-la.com/lax/arrivals?t=1")) {
+                                String a = "";
+                            }
+                            startFlightExtraction(parseString);
+                        }
+                    } else {
+                        flightNameText.setText(data.getFlightName());
+                        arrayList.add(data);
+                        count++;
+                        countText.setText("" + count);
+                        mCurrentParsedString = data.getParsedString();
+                        if (data.getIsLastFlight()) {
+                            lastFlight = true;
+                            taskText.setText("");
+
+                            loaderCount--;
+                            if (loaderCount > 0) {
+                                pageCount++;
+                                String parseString = FlightUriBuilder.buildUri(pageCount);
+                                startFlightExtraction(parseString);
+                            }
+                        } else if (!data.getIsLastFlight()) {
+                            int index = data.getNextFlightIndex();
+                            String parse = data.getParsedString();
+                            parseRemainingFlights(index, parse);
+                        }
                     }
                 }
 
@@ -146,6 +191,18 @@ public class MainActivity extends AppCompatActivity {
                     if (data.getIsLastFlight()) {
                         lastFlight = true;
                         taskText.setText("");
+
+                        loaderCount--;
+                        if (loaderCount > 0) {
+                            pageCount++;
+                            String parseString = FlightUriBuilder.buildUri(pageCount);
+                            if (parseString.equals("https://www.airport-la.com/lax/arrivals?t=1")) {
+                                String a = "";
+                            }
+                            startFlightExtraction(parseString);
+                        }
+
+                        //Next page
                     } else if (!data.getIsLastFlight()) {
                         parseRemainingFlights(data.getNextFlightIndex(),
                                 data.getParsedString());
@@ -157,5 +214,4 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             };
-
 }

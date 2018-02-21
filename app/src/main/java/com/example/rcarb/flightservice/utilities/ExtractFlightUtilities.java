@@ -45,6 +45,7 @@ public class ExtractFlightUtilities {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return resString;
     }
 
@@ -52,11 +53,33 @@ public class ExtractFlightUtilities {
 
         FlightObject flight = new FlightObject();
 
+        if (!flightString.contains("/airlines/")){
+            flight.setFlightName("null");
+            flight.setNextFlightIndex(-2);
+            flight.setFlightScheduledTime(-2);
+            flight.setActualArrivalTime(-2);
+            flight.setActualArrivalTime(-2);
+            flight.setFlightStatus("null");
+            flight.setAirport("null");
+            flight.setAirline("null");
+            flight.setIsLastFlight(true);
+            flight.setParsedString("null");
+            flight.setFlightScheduledTime(-2);
+            return flight;
+        }
+
         int startIndex = flightString.indexOf("/airlines/");
-        int nextIndex = flightString.indexOf("/airlines/", startIndex + 1);
+        int nextIndex = -1;
+        if ( flightString.indexOf("/airlines/", startIndex + 10)<0){
+            nextIndex = flightString.indexOf("<!--- END Arrivals --->", startIndex + 10);
+            flight.setIsLastFlight(true);
 
 
-        String currentSubstring = flightString.substring(startIndex, nextIndex);
+        }else if (flightString.indexOf("/airlines/", startIndex + 10)>-1){
+            nextIndex = flightString.indexOf("/airlines/", startIndex + 10);
+        }
+        String currentSubstring =  flightString.substring(startIndex, nextIndex);
+
         //get airline
         int startAirlineIndex = currentSubstring.indexOf(">");
         int endAirlineIndex = currentSubstring.indexOf("</a>");
@@ -69,6 +92,14 @@ public class ExtractFlightUtilities {
         int startFlightNameIndex = currentSubstring.indexOf("flight_arrival=");
         int endFlightNameIndex = currentSubstring.indexOf("\"", startFlightNameIndex);
         String fligthName = currentSubstring.substring(startFlightNameIndex + flightArrivalLength, endFlightNameIndex);
+
+        if (fligthName.contains("&date")){
+            int nameLength = fligthName.length();
+            int dateIndex = fligthName.indexOf("&");
+            String replacedString = fligthName.substring(dateIndex, nameLength);
+            fligthName = fligthName.replace(replacedString, "");
+        }
+
         flight.setFlightName(fligthName);
 
         //get airport
@@ -83,13 +114,19 @@ public class ExtractFlightUtilities {
         int indexScheduled = currentSubstring.indexOf(":", airportEndIndex);
         String scheduledTimeString = currentSubstring.substring(indexScheduled - 2, indexScheduled + 3);
         scheduledTimeString = scheduledTimeString.replace(":", "");
+        if (!DataCheckingUtils.isNumber(scheduledTimeString)){
+            scheduledTimeString = "-2";
+        }
         int scheduledTime = Integer.valueOf(scheduledTimeString);
         flight.setFlightScheduledTime(scheduledTime);
 
         //get Actual
-        int indexActual = currentSubstring.indexOf(":", indexScheduled + 1);
+        int indexActual = currentSubstring.indexOf(":", indexScheduled + 5);
         String actualTimeString = currentSubstring.substring(indexActual - 2, indexActual + 3);
         actualTimeString = actualTimeString.replace(":", "");
+        if (!DataCheckingUtils.isNumber(actualTimeString)){
+            actualTimeString = "-2";
+        }
         int actualTime = Integer.valueOf(actualTimeString);
         flight.setActualArrivalTime(actualTime);
 
@@ -105,6 +142,10 @@ public class ExtractFlightUtilities {
     }
     public static FlightObject saveFlightStringToObject(String flightString,
                                                         int startAtIndex) {
+
+        if (startAtIndex <0){
+            String a ="";
+        }
 
         FlightObject flight = new FlightObject();
 
@@ -133,6 +174,14 @@ public class ExtractFlightUtilities {
         int startFlightNameIndex = currentSubstring.indexOf("flight_arrival=");
         int endFlightNameIndex = currentSubstring.indexOf("\"", startFlightNameIndex);
         String fligthName = currentSubstring.substring(startFlightNameIndex + flightArrivalLength, endFlightNameIndex);
+
+        if (fligthName.contains("&date")){
+            int nameLength = fligthName.length();
+            int dateIndex = fligthName.indexOf("&");
+            String replacedString = fligthName.substring(dateIndex, nameLength);
+            fligthName = fligthName.replace(replacedString, "");
+        }
+
         flight.setFlightName(fligthName);
 
         //get airport
@@ -147,13 +196,19 @@ public class ExtractFlightUtilities {
         int indexScheduled = currentSubstring.indexOf(":", airportEndIndex);
         String scheduledTimeString = currentSubstring.substring(indexScheduled - 2, indexScheduled + 3);
         scheduledTimeString = scheduledTimeString.replace(":", "");
+        if (!DataCheckingUtils.isNumber(scheduledTimeString)){
+            scheduledTimeString = "-2";
+        }
         int scheduledTime = Integer.valueOf(scheduledTimeString);
         flight.setFlightScheduledTime(scheduledTime);
 
         //get Actual
-        int indexActual = currentSubstring.indexOf(":", indexScheduled + 1);
+        int indexActual = currentSubstring.indexOf(":", indexScheduled + 5);
         String actualTimeString = currentSubstring.substring(indexActual - 2, indexActual + 3);
         actualTimeString = actualTimeString.replace(":", "");
+        if (!DataCheckingUtils.isNumber(actualTimeString)){
+            actualTimeString = "-2";
+        }
         int actualTime = Integer.valueOf(actualTimeString);
         flight.setActualArrivalTime(actualTime);
 
@@ -164,7 +219,6 @@ public class ExtractFlightUtilities {
         //Set next flight index
         flight.setNextFlightIndex(nextIndex-1);
         flight.setParsedString(flightString);
-
 
         return flight;
     }
