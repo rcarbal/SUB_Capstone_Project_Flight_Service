@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Flight Server</string>
+
+    <string name="search_string_for" translatable="false">flight_arrival=</string>
+
+    <string name="tv_task">Task: </string>
+    <string name="tv_flight_name">Flight Name: </string>
+    <string name="tv_extract_flights">Extract Flights</string>
+    <string name="tv_flights">Flights: </string>
+</resources>
