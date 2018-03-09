@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -16,9 +17,13 @@ import android.support.annotation.Nullable;
  */
 
 public class FlightContentProvider extends ContentProvider {
-    //Integer constants
+    //Integer constants for flight databse
     private static final int FLIGHTS = 100;
     private static final int FLIGHTS_WITH_ID = 101;
+
+    //Integer constants for list databse
+    private static final int LIST_DATABASE = 200;
+    private static final int LIST_DATABASE_WITH_ID = 201;
 
     //Uri matcher for global variables.
     private static UriMatcher sUriMatcher = buildUriMatcher();
@@ -32,7 +37,13 @@ public class FlightContentProvider extends ContentProvider {
         //Uri for the complete table
         uriMatcher.addURI(FlightContract.AUTHORITY, FlightContract.PATH_FLIGHTS, FLIGHTS);
         //Uri of the table with an item.
-        uriMatcher.addURI(FlightContract.AUTHORITY, FlightContract.PATH_FLIGHTS + "/#",FLIGHTS_WITH_ID );
+        uriMatcher.addURI(FlightContract.AUTHORITY, FlightContract.PATH_FLIGHTS + "/#",
+                FLIGHTS_WITH_ID );
+
+        //Uri for the list database table.
+        uriMatcher.addURI(FlightContract.AUTHORITY, FlightContract.PATH_LIST_DATABASE, LIST_DATABASE);
+        uriMatcher.addURI(FlightContract.AUTHORITY, FlightContract.PATH_LIST_DATABASE + "/#",
+                LIST_DATABASE_WITH_ID);
 
         return uriMatcher;
 
@@ -64,7 +75,7 @@ public class FlightContentProvider extends ContentProvider {
         switch (match){
             //Query the flight directory.
             case FLIGHTS:
-                cursor = db.query(FlightContract.FlightEntry.TABLE_NAME,
+                cursor = db.query(FlightContract.FlightEntry.TABLE_NAME_DAY_FLIGHTS,
                         projection,
                         selection,
                         selectionArgs,
@@ -72,6 +83,18 @@ public class FlightContentProvider extends ContentProvider {
                         null,
                         FlightContract.FlightEntry._ID);
                 break;
+
+            //Query list databse table.
+            case LIST_DATABASE:
+                cursor = db.query(FlightContract.FlightEntry.TABLE_DATABASES_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        FlightContract.FlightEntry._ID);
+                break;
+
             default:
                 throw new UnsupportedOperationException("Unknown ur: " + uri);
         }
@@ -101,7 +124,7 @@ public class FlightContentProvider extends ContentProvider {
 
         switch (match){
             case FLIGHTS:
-                long id = db.insert(FlightContract.FlightEntry.TABLE_NAME,
+                long id = db.insert(FlightContract.FlightEntry.TABLE_NAME_DAY_FLIGHTS,
                         null, contentValues);
                 if (id>0){
                     //Success
@@ -112,6 +135,21 @@ public class FlightContentProvider extends ContentProvider {
                     throw new android.database.SQLException("Failed to insert row into " + uri);
                 }
                 break;
+
+            //Insert list database table.
+            case LIST_DATABASE:
+                long idList = db.insert(FlightContract.FlightEntry.TABLE_DATABASES_NAME,
+                        null, contentValues);
+                if (idList>0){
+                    //Success
+                    returnedUri = ContentUris.withAppendedId(
+                            FlightContract.FlightEntry.BASE_CONTENT_URI_LIST_DATABSE,
+                            idList);
+                }else{
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                }
+                break;
+
                 default:
                     throw new UnsupportedOperationException("Unknown Uri: " + uri);
         }
@@ -135,7 +173,16 @@ public class FlightContentProvider extends ContentProvider {
                 //get id from the uri.
                 String id = uri.getPathSegments().get(1);
                 //Use selection/selectionArgs to filter for this id.
-                flightsDeleted = db.delete(FlightContract.FlightEntry.TABLE_NAME, "_id=?", new String[]{id});
+                flightsDeleted = db.delete(FlightContract.FlightEntry.TABLE_NAME_DAY_FLIGHTS, "_id=?", new String[]{id});
+                break;
+
+            //Case list database
+            case LIST_DATABASE_WITH_ID:
+                String idList = uri.getPathSegments().get(1);
+                //Use selection/selectionArgs to filter for this id.
+                flightsDeleted = db.delete(FlightContract.FlightEntry.TABLE_DATABASES_NAME,
+                        "_id=?",
+                        new String[]{idList});
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
@@ -152,6 +199,33 @@ public class FlightContentProvider extends ContentProvider {
                       @Nullable ContentValues values,
                       @Nullable String selection,
                       @Nullable String[] selectionArgs) {
-        return 0;
+
+        //keep track of if an update occurs.
+        int tasksUpdated;
+        //match code.
+        int match = sUriMatcher.match(uri);
+        //Get writable database.
+        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        switch (match){
+            case FLIGHTS_WITH_ID:
+                //get id from the uri
+                String id = uri.getPathSegments().get(1);
+
+                tasksUpdated = db.update(FlightContract.FlightEntry.TABLE_NAME_DAY_FLIGHTS,
+                        values,
+                        FlightContract.FlightEntry._ID+"=?",
+                        new String[]{id});
+
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+                }
+        if (tasksUpdated != 0){
+            //set notifications if task is updated
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        //return number of tasks
+        return tasksUpdated;
     }
 }

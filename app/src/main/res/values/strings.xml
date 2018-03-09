@@ -4,7 +4,23 @@
     <string name="search_string_for" translatable="false">flight_arrival=</string>
 
     <string name="tv_task">Task: </string>
+    <string name="tv_alarms_update">Re-update Alarms remaining: </string>
+
+    <string name="tv_flights">Total Day\'s Flights: </string>
+    <string name="tv_flight_updated"> Flight updated: </string>
+    <string name="tv_second_alarms_section">Second Section</string>
+    <string name="tv_flights_need_update">To be Updated: </string>
+    <string name="tv_update_status_display">Post update status: </string>
+    <string name="tv_flight_being_updated">Status after update: </string>
+    <string name="tv_flights_alarm_set">Remaining Alarms: </string>
     <string name="tv_flight_name">Flight Name: </string>
+    <string name="tv_database_found">Database found: </string>
+    <string name="tv_special_message">System message</string>
+    <string name="tv_daily_alarm_section">Daily Alarm Section</string>
+    <string name="tv_alarms">Alarms: </string>
+
     <string name="tv_extract_flights">Extract Flights</string>
-    <string name="tv_flights">Flights: </string>
+    <string name="tv_task_saving_to_databse">Saving flights to databse</string>
+
+
 </resources>

@@ -1,18 +1,24 @@
 package com.example.rcarb.flightservice.utilities;
 
-import com.example.rcarb.flightservice.R;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+
 import com.example.rcarb.flightservice.objects.FlightObject;
+import com.example.rcarb.flightservice.objects.FlightTimeObject;
+import com.example.rcarb.flightservice.receivers.ProcessAlarmReceiver;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -53,7 +59,7 @@ public class ExtractFlightUtilities {
 
         FlightObject flight = new FlightObject();
 
-        if (!flightString.contains("/airlines/")){
+        if (!flightString.contains("/airlines/")) {
             flight.setFlightName("null");
             flight.setNextFlightIndex(-2);
             flight.setFlightScheduledTime(-2);
@@ -70,15 +76,15 @@ public class ExtractFlightUtilities {
 
         int startIndex = flightString.indexOf("/airlines/");
         int nextIndex = -1;
-        if ( flightString.indexOf("/airlines/", startIndex + 10)<0){
+        if (flightString.indexOf("/airlines/", startIndex + 10) < 0) {
             nextIndex = flightString.indexOf("<!--- END Arrivals --->", startIndex + 10);
             flight.setIsLastFlight(true);
 
 
-        }else if (flightString.indexOf("/airlines/", startIndex + 10)>-1){
+        } else if (flightString.indexOf("/airlines/", startIndex + 10) > -1) {
             nextIndex = flightString.indexOf("/airlines/", startIndex + 10);
         }
-        String currentSubstring =  flightString.substring(startIndex, nextIndex);
+        String currentSubstring = flightString.substring(startIndex, nextIndex);
 
         //get airline
         int startAirlineIndex = currentSubstring.indexOf(">");
@@ -93,7 +99,7 @@ public class ExtractFlightUtilities {
         int endFlightNameIndex = currentSubstring.indexOf("\"", startFlightNameIndex);
         String fligthName = currentSubstring.substring(startFlightNameIndex + flightArrivalLength, endFlightNameIndex);
 
-        if (fligthName.contains("&date")){
+        if (fligthName.contains("&date")) {
             int nameLength = fligthName.length();
             int dateIndex = fligthName.indexOf("&");
             String replacedString = fligthName.substring(dateIndex, nameLength);
@@ -114,7 +120,7 @@ public class ExtractFlightUtilities {
         int indexScheduled = currentSubstring.indexOf(":", airportEndIndex);
         String scheduledTimeString = currentSubstring.substring(indexScheduled - 2, indexScheduled + 3);
         scheduledTimeString = scheduledTimeString.replace(":", "");
-        if (!DataCheckingUtils.isNumber(scheduledTimeString)){
+        if (!DataCheckingUtils.isNumber(scheduledTimeString)) {
             scheduledTimeString = "-2";
         }
         int scheduledTime = Integer.valueOf(scheduledTimeString);
@@ -124,7 +130,7 @@ public class ExtractFlightUtilities {
         int indexActual = currentSubstring.indexOf(":", indexScheduled + 5);
         String actualTimeString = currentSubstring.substring(indexActual - 2, indexActual + 3);
         actualTimeString = actualTimeString.replace(":", "");
-        if (!DataCheckingUtils.isNumber(actualTimeString)){
+        if (!DataCheckingUtils.isNumber(actualTimeString)) {
             actualTimeString = "-2";
         }
         int actualTime = Integer.valueOf(actualTimeString);
@@ -134,29 +140,102 @@ public class ExtractFlightUtilities {
         String statusString = ExtractFlightUtilities.getStatus(currentSubstring);
         flight.setFlightStatus(statusString);
 
-        //Set next flight index
-        flight.setNextFlightIndex(nextIndex-1);
+        //Get/set gate
+        int tdLengeth = "<td>".length();
+        int terminalIndex = currentSubstring.indexOf("<td>", indexActual + 5);
+        String terminal = currentSubstring.substring(terminalIndex + tdLengeth,
+                terminalIndex + tdLengeth + 1);
+        int terminalInt = -2;
+        if (DataCheckingUtils.isNumber(terminal)) {
+            terminalInt = Integer.valueOf(terminal);
+        }
+        flight.setNextFlightIndex(nextIndex - 1);
+        flight.setGate(terminalInt);
+
+
         flight.setParsedString(flightString);
 
         return flight;
     }
+
+    //get inforamtion for a single flight.
+    public static FlightObject getInfoForSIngleFlight(String parseString) {
+        FlightObject object = new FlightObject();
+
+        int indexStart = parseString.indexOf("flight_arrival=");
+        int indexEnd = parseString.indexOf("<!--- END Flights --->");
+
+        String currentString = null;
+        try {
+            currentString = parseString.substring(indexStart, indexEnd);
+        } catch (Exception e) {
+            e.printStackTrace();
+            FlightObject flightObject = new FlightObject();
+            return flightObject;
+        }
+
+
+        //Get the scheduled time of the flight
+        int colonIndex = currentString.indexOf(":");
+        String scheduled;
+        int timeIndex =-2;
+        if (colonIndex <0) {
+            scheduled = "-2";
+        } else {
+            timeIndex = currentString.indexOf(":", colonIndex + 2);
+            scheduled = currentString.substring(timeIndex - 2, timeIndex + 3);
+            scheduled = scheduled.replace(":", "");
+            if (!DataCheckingUtils.isNumber(scheduled)) {
+                scheduled = "-2";
+            }
+            int scheduledInteger = Integer.valueOf(scheduled);
+            object.setFlightScheduledTime(scheduledInteger);
+        }
+
+
+            //Get actual flight
+            String actual;
+            int actualColon = currentString.indexOf(":", timeIndex + 1);
+            if (actualColon<0){
+            actual = "-2";
+            }else {
+                actual = currentString.substring(actualColon - 2, actualColon + 3);
+                actual = actual.replace(":", "");
+                if (!DataCheckingUtils.isNumber(actual)) {
+                    actual = "-2";
+                }
+            }
+
+            int actualInteger = Integer.valueOf(actual);
+            object.setActualArrivalTime(actualInteger);
+
+            //Get Status
+            String statusString = ExtractFlightUtilities.getStatus(currentString);
+            object.setFlightStatus(statusString);
+
+
+            return object;
+
+
+        }
+
     public static FlightObject saveFlightStringToObject(String flightString,
                                                         int startAtIndex) {
 
-        if (startAtIndex <0){
-            String a ="";
+        if (startAtIndex < 0) {
+            String a = "";
         }
 
         FlightObject flight = new FlightObject();
 
         int startIndex = startAtIndex;
         int nextIndex = -1;
-        if ( flightString.indexOf("/airlines/", startIndex + 10)<0){
+        if (flightString.indexOf("/airlines/", startIndex + 10) < 0) {
             nextIndex = flightString.indexOf("<!--- END Arrivals --->", startIndex + 10);
             flight.setIsLastFlight(true);
 
 
-        }else if (flightString.indexOf("/airlines/", startIndex + 10)>-1){
+        } else if (flightString.indexOf("/airlines/", startIndex + 10) > -1) {
             nextIndex = flightString.indexOf("/airlines/", startIndex + 10);
         }
 
@@ -175,7 +254,7 @@ public class ExtractFlightUtilities {
         int endFlightNameIndex = currentSubstring.indexOf("\"", startFlightNameIndex);
         String fligthName = currentSubstring.substring(startFlightNameIndex + flightArrivalLength, endFlightNameIndex);
 
-        if (fligthName.contains("&date")){
+        if (fligthName.contains("&date")) {
             int nameLength = fligthName.length();
             int dateIndex = fligthName.indexOf("&");
             String replacedString = fligthName.substring(dateIndex, nameLength);
@@ -196,7 +275,7 @@ public class ExtractFlightUtilities {
         int indexScheduled = currentSubstring.indexOf(":", airportEndIndex);
         String scheduledTimeString = currentSubstring.substring(indexScheduled - 2, indexScheduled + 3);
         scheduledTimeString = scheduledTimeString.replace(":", "");
-        if (!DataCheckingUtils.isNumber(scheduledTimeString)){
+        if (!DataCheckingUtils.isNumber(scheduledTimeString)) {
             scheduledTimeString = "-2";
         }
         int scheduledTime = Integer.valueOf(scheduledTimeString);
@@ -206,7 +285,7 @@ public class ExtractFlightUtilities {
         int indexActual = currentSubstring.indexOf(":", indexScheduled + 5);
         String actualTimeString = currentSubstring.substring(indexActual - 2, indexActual + 3);
         actualTimeString = actualTimeString.replace(":", "");
-        if (!DataCheckingUtils.isNumber(actualTimeString)){
+        if (!DataCheckingUtils.isNumber(actualTimeString)) {
             actualTimeString = "-2";
         }
         int actualTime = Integer.valueOf(actualTimeString);
@@ -216,27 +295,91 @@ public class ExtractFlightUtilities {
         String statusString = ExtractFlightUtilities.getStatus(currentSubstring);
         flight.setFlightStatus(statusString);
 
-        //Set next flight index
-        flight.setNextFlightIndex(nextIndex-1);
+        //Get/set gate
+        int tdLengeth = "<td>".length();
+        int terminalIndex = currentSubstring.indexOf("<td>", indexActual + 5);
+        String terminal = currentSubstring.substring(terminalIndex + tdLengeth,
+                terminalIndex + tdLengeth + 1);
+        int terminalInt = -2;
+        if (DataCheckingUtils.isNumber(terminal)) {
+            terminalInt = Integer.valueOf(terminal);
+        }
+        flight.setGate(terminalInt);
+
+        flight.setNextFlightIndex(nextIndex - 1);
         flight.setParsedString(flightString);
 
         return flight;
     }
 
-    private static String getStatus(String string) {
+    public static String getDate() {
+        SimpleDateFormat curFormater = new SimpleDateFormat("ddMMyyyy");
+        Date date = new Date();
+        return curFormater.format(date);
+    }
 
-        if (string.contains("Landed")){
+    //Sets up alarm for a specified flight.
+    public static boolean setupAlarm(String flightName, long columnId, int time,int requestCode, Context context) {
+        AlarmManager alarmManager;
+
+
+        FlightTimeObject timeObject = DataCheckingUtils.getConvertedTime(time);
+
+        try {
+            alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+            Intent intent = new Intent(context.getApplicationContext(), ProcessAlarmReceiver.class);
+            intent.putExtra(IntentActions.INTENT_REQUEST_CODE, requestCode);
+            intent.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
+            intent.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, columnId);
+
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent,PendingIntent.FLAG_UPDATE_CURRENT);
+
+            //Get calendar instance
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(System.currentTimeMillis());
+
+            //get hour
+            if (timeObject.getHour()!= -1) {
+                int hour = timeObject.getHour();
+                calendar.set(Calendar.HOUR_OF_DAY, hour);
+            }
+
+            //get minute
+            if (timeObject.getMinute()!=-1){
+                int minute = timeObject.getMinute();
+                calendar.set(Calendar.MINUTE, minute);
+            }
+
+            calendar.set(Calendar.SECOND, 0);
+            Calendar newCalendar = DataCheckingUtils.adjustAlarmTime(calendar);
+
+            assert alarmManager != null;
+
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP,
+                    newCalendar.getTimeInMillis(),
+                    pendingIntent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    private static String getStatus(String string) {
+        if (string.contains("Landed")) {
             return "Landed";
-        }else if (string.contains("En Route")){
+        } else if (string.contains("En Route")) {
             return "En Route";
-        }else if (string.contains("Cancelled")){
+        } else if (string.contains("Cancelled")) {
             return "Cancelled";
-        }else if (string.contains("Scheduled")){
+        } else if (string.contains("Scheduled")) {
             return "Scheduled";
-        }else{
+        } else {
             return "error";
         }
-
-
     }
+
+
 }

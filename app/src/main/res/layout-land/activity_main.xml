@@ -27,8 +27,8 @@
                 android:id="@+id/task"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
         <LinearLayout
@@ -45,8 +45,8 @@
                 android:id="@+id/flight_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
         <LinearLayout
@@ -63,8 +63,8 @@
                 android:id="@+id/count"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
         <LinearLayout
@@ -81,8 +81,8 @@
                 android:id="@+id/update_needed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
         <LinearLayout
@@ -99,9 +99,10 @@
                 android:id="@+id/found_database"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -116,23 +117,43 @@
                 android:id="@+id/remaining_alarms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingLeft="8dp" />
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
+        <!--special message-->
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="8dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/tv_special_message"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/system_alarm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
+        </LinearLayout>
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.Check for database"/>
+            android:text="1.Check for database" />
         <!--android:onClick="checkForCurrentDatabase"/-->
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="2. Set new varaibles"
-            android:onClick="prepareNewDatabseVariables"/>
+            android:onClick="setupAlarmsForDay"
+            android:text="Setup daily alarms" />
 
         <!--<Button-->
         <!--android:layout_width="wrap_content"-->
@@ -155,8 +176,8 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Start Extraction"
-            android:onClick="startExtraction"/>
+            android:onClick="startExtraction"
+            android:text="Start Extractio" />
     </LinearLayout>
 
     <!--Second Section-->
@@ -164,6 +185,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -173,13 +195,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/tv_second_alarms_section"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -194,8 +218,8 @@
                     android:id="@+id/first_updated_flight"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp" />
+                    android:paddingLeft="8dp"
+                    android:paddingStart="8dp" />
             </LinearLayout>
 
             <!--Flight being updated-->
@@ -215,8 +239,8 @@
                     android:id="@+id/update_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp" />
+                    android:paddingLeft="8dp"
+                    android:paddingStart="8dp" />
             </LinearLayout>
 
             <!--Status after update-->
@@ -234,8 +258,8 @@
                     android:id="@+id/status_after_update"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp" />
+                    android:paddingLeft="8dp"
+                    android:paddingStart="8dp" />
             </LinearLayout>
             <!--Number of Alarms for re-updating-->
             <LinearLayout
@@ -252,9 +276,36 @@
                     android:id="@+id/reupdate_alarms"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp" />
+                    android:paddingLeft="8dp"
+                    android:paddingStart="8dp" />
             </LinearLayout>
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tv_daily_alarm_section"
+            android:paddingTop="20dp"
+            android:textStyle="bold"
+            />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tv_alarms"
+                />
+            <TextView
+                android:id="@+id/tv_alarms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+
 
         </LinearLayout>
 

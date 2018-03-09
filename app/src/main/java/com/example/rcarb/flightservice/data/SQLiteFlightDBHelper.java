@@ -19,12 +19,14 @@ public class SQLiteFlightDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(FlightContract.FlightEntry.SQL_CREATE_RECIPE_ENTRIES);
+        db.execSQL(FlightContract.FlightEntry.SQL_CREATE_FLIGHT_ENTRIES);
+        db.execSQL(FlightContract.FlightEntry.SQL_CREATE_LIST_OF_DATABASES);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL(FlightContract.FlightEntry.SQL_DELETE_FLIGHT_ENTRIES);
+        db.execSQL(FlightContract.FlightEntry.SQL_DELETE_LIST_DATABASE);
 
         onCreate(db);
     }
