@@ -1,12 +1,12 @@
 package com.example.rcarb.flightservice;
 
-import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -21,18 +21,28 @@ import com.example.rcarb.flightservice.data.CheckForDatabase;
 import com.example.rcarb.flightservice.data.SQLiteFlightDBHelper;
 import com.example.rcarb.flightservice.loaders.GetFlightObjectLoader;
 import com.example.rcarb.flightservice.loaders.GetFlightsFromParsedStringLoader;
+import com.example.rcarb.flightservice.loaders.GetFlightsTimeFrames;
 import com.example.rcarb.flightservice.objects.FlightObject;
-import com.example.rcarb.flightservice.receivers.ProcessAlarmReceiver;
+import com.example.rcarb.flightservice.objects.FlightSyncObject;
+import com.example.rcarb.flightservice.receivers.ProcessSecondAlarmReceiver;
 import com.example.rcarb.flightservice.service.AlarmService;
 import com.example.rcarb.flightservice.service.FlightIntentService;
+import com.example.rcarb.flightservice.service.RestartDayService;
 import com.example.rcarb.flightservice.service.SecondAlarmService;
 import com.example.rcarb.flightservice.service.AllDayAlarmService;
+import com.example.rcarb.flightservice.service.SetupElevenPmAlarmService;
+import com.example.rcarb.flightservice.service.SetupTimeFrameService;
+import com.example.rcarb.flightservice.utilities.DataCheckingUtils;
 import com.example.rcarb.flightservice.utilities.FlightExtractionTasks;
 import com.example.rcarb.flightservice.utilities.IntentActions;
 import com.example.rcarb.flightservice.utilities.TimeManager;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,11 +50,12 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReadyReceiver mReciever;
 
 
-    private ArrayList<FlightObject> arrayList;
+    private ArrayList<FlightObject> mArrayList;
     private ArrayList<FlightObject> arrayListUpdate;
 
     private static final int EXTRACT_FLIGHTS_LOADER = 1;
     private static final int EXTRACT_FLIGHTS_STRING_LOADER = 2;
+    private static final int EXTRACT_FLIGHT_TIME_FRAME = 3;
 
     private TextView taskText;
     private TextView flightNameText;
@@ -54,10 +65,17 @@ public class MainActivity extends AppCompatActivity {
     private TextView databseFound;
     private TextView flightUpdated;
     private TextView alarmsForReUpdating;
-    private TextView statusToBeUpdated;
+    private TextView preUpdateStatus;
     private TextView statusAfterUpdate;
     private TextView systemMessage;
     private TextView allDayAlarms;
+    private TextView preSecondAlarm;
+    private TextView postSecondAlarm;
+    private TextView timeStamp;
+
+    private TextView minutes30;
+    private TextView hour1;
+    private TextView hour2;
 
     private int mFirstAlarms;
     private int mSecondAlarm;
@@ -70,8 +88,19 @@ public class MainActivity extends AppCompatActivity {
     private int mInitialHour;
     private int mAllDayAlarmSet;
 
-    private boolean lastFlight = false;
+    private int totalNumberOFFlights;
+
+    private int test = 0;
+
+
     private String mCurrentParsedString;
+
+    private boolean lastFlight = false;
+    private boolean parsingConcatenate = false;
+    private boolean allDayAlarmsSetup = false;
+
+    private FirebaseDatabase mFireBaseDatabase;
+    private DatabaseReference mDatabaseReference;
 
 
     @Override
@@ -79,6 +108,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        mFireBaseDatabase= FirebaseDatabase.getInstance();
+        mDatabaseReference = mFireBaseDatabase.getReference().child("flight");
 
         //ReminderUtilities.scheduleFlightUpdate(this);
 
@@ -103,6 +135,12 @@ public class MainActivity extends AppCompatActivity {
         mDatabseReadyFilter.addAction(IntentActions.ACTION_CURRENT_ARRAYLIST_REQUEST_CODES_COMPLETED);
         mDatabseReadyFilter.addAction(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS);
         mDatabseReadyFilter.addAction(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_START_NEW_PARSE_FOR_ALL_FLIGHTS);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_FIRST_ALARM_COMPLETE);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_INTENT_CANCEL_ALARM);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_GET_PARSER);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_START_ELEVEN_PM_PARSE);
+        mDatabseReadyFilter.addAction(IntentActions.ACTION_START_RESET);
 
         taskText = findViewById(R.id.task);
         flightNameText = findViewById(R.id.flight_name);
@@ -112,42 +150,113 @@ public class MainActivity extends AppCompatActivity {
         databseFound = findViewById(R.id.found_database);
         flightUpdated = findViewById(R.id.first_updated_flight);
         alarmsForReUpdating = findViewById(R.id.reupdate_alarms);
-        statusToBeUpdated = findViewById(R.id.update_status);
+        preUpdateStatus = findViewById(R.id.update_pre_status);
         statusAfterUpdate = findViewById(R.id.status_after_update);
         systemMessage = findViewById(R.id.system_alarm);
         allDayAlarms = findViewById(R.id.tv_alarms);
+        preSecondAlarm = findViewById(R.id.pre_second_alarm);
+        postSecondAlarm = findViewById(R.id.post_second_alarm);
+        minutes30 = findViewById(R.id.tv_15_minutes);
+        hour1 = findViewById(R.id.tv_1_hour);
+        hour2 = findViewById(R.id.tv_2_hours);
+        timeStamp = findViewById(R.id.time_stamp);
 
 
         mFirstAlarms = 0;
         mSecondAlarm = 0;
         mAlldayAlarms = 0;
         mAllDayAlarmSet = 0;
-    }
+        totalNumberOFFlights = 0;
 
-    public void setupAlarmsForDay(@Nullable View view) {
-        //Setup up alarms for the rest of the day.
-        //service to do so.
-        Calendar dateCalendar = Calendar.getInstance();
-        mInitialHour = dateCalendar.get(Calendar.HOUR_OF_DAY);
-
-        mAlldayAlarms = (24 - mInitialHour) / 2;
-        Intent setupDaysAlarm = new Intent(MainActivity.this, AllDayAlarmService.class);
-        setupDaysAlarm.putExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, mAlldayAlarms);
-        setupDaysAlarm.putExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, mInitialHour);
-        startService(setupDaysAlarm);
     }
 
     public void startExtraction(View view) {
         //Check if database has been created
         if (!checkForCurrentDatabase()) {
             //If no database has been created, start flight info extraction.
-            arrayList = new ArrayList<>();
+            mArrayList = new ArrayList<>();
             count = 0;
             loaderCount = 12;
             arrayIndex = 0;
             updateArrayCount = 0;
-            checkTimeFrame();
+
         }
+
+        setupElevenPmAlarm();
+        setRestart();
+        checkTimeFrame();
+    }
+
+    public void setRestart() {
+        Intent restart = new Intent(MainActivity.this, RestartDayService.class);
+        startService(restart);
+    }
+
+    public void setupAlarmsForDay() {
+        //Setup up alarms for the rest of the day.ACTION_PROCESS_REMAINING_DAILY_ALARMS
+        //service to do so.
+        Calendar dateCalendar = Calendar.getInstance();
+        mInitialHour = dateCalendar.get(Calendar.HOUR_OF_DAY);
+
+        mAlldayAlarms = DataCheckingUtils.getNumberOfDailyAlarms(mInitialHour);
+        Intent setupDaysAlarm = new Intent(MainActivity.this, AllDayAlarmService.class);
+        setupDaysAlarm.putExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, mAlldayAlarms);
+        setupDaysAlarm.putExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, mInitialHour);
+        startService(setupDaysAlarm);
+    }
+
+    public void setupElevenPmAlarm() {
+        Intent setupElevenPmAlarm = new Intent(MainActivity.this, SetupElevenPmAlarmService.class);
+        startService(setupElevenPmAlarm);
+    }
+
+
+    //Starts Exttraction for alarm.
+    public void startAlarmExtractionExtraction() {
+        //If no database has been created, start flight info extraction.
+        mArrayList = new ArrayList<>();
+        loaderCount = 12;
+        arrayIndex = 0;
+        updateArrayCount = 0;
+        totalNumberOFFlights = 0;
+        alarmCheckTimeFrame();
+    }
+
+    public void startConcatenateParse() {
+        mArrayList = new ArrayList<>();
+        loaderCount = 2;
+        arrayIndex = 0;
+        updateArrayCount = 0;
+        parsingConcatenate = true;
+        totalNumberOFFlights = 0;
+        String parseString = FlightUriBuilder.buildUri(1);
+        startAlarmFlightExtraction(parseString);
+    }
+
+    public void restartDay() {
+        mArrayList = new ArrayList<>();
+        count = 0;
+        loaderCount = 12;
+        arrayIndex = 0;
+        updateArrayCount = 0;
+
+        mFirstAlarms = 0;
+        mSecondAlarm = 0;
+        mAlldayAlarms = 0;
+        mAllDayAlarmSet = 0;
+
+        mFirstAlarms = 0;
+        mSecondAlarm = 0;
+        mAlldayAlarms = 0;
+        mAllDayAlarmSet = 0;
+
+        totalNumberOFFlights = 0;
+
+        lastFlight = false;
+
+        setupAlarmsForDay();
+        checkTimeFrame();
+
     }
 
     //Check if database exists
@@ -158,15 +267,6 @@ public class MainActivity extends AppCompatActivity {
         }
         databseFound.setText("false");
         return false;
-    }
-
-    //prapare variables for when databse is not found
-    public void prepareNewDatabseVariables(View view) {
-        arrayList = new ArrayList<>();
-        count = 0;
-        loaderCount = 12;
-        Toast.makeText(this, "New Arraylist, Count, loadercount",
-                Toast.LENGTH_SHORT).show();
     }
 
     //Check time frame.
@@ -181,46 +281,19 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //Button 4. Save flights to database
-    public void saveflightsToDatabase(View view) {
-        taskText.setText("Saving flights to database");
-        Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
-        sendBroadcast(broadcastIntent);
-    }
+    //Check time frame.
+    public void alarmCheckTimeFrame() {
+        taskText.setText("Extracting flights");
+        int timeFrame = TimeManager.timeEtraction();
+        pageCount = (timeFrame - 12) + 1;
 
-    //5.Get flights to update
-    public void getFlightsToUpdate(View view) {
-        taskText.setText("Getting flights for update");
-        Intent databaseFailedIntent = new Intent(IntentActions.DATABASE_FLIGHT_INSERTED_SUCCESS);
-        sendBroadcast(databaseFailedIntent);
-    }
+        String parseString = FlightUriBuilder.buildUri(pageCount);
+        startAlarmFlightExtraction(parseString);
 
-    //6. Set Alarms for each flight
-    public void setAlarmsButton(View view) {
-        taskText.setText("Set alarms");
-    }
 
-    private boolean isMyServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean stopRunningService() {
-        boolean stop = false;
-        stop = stopService(new Intent(MainActivity.this, FlightIntentService.class));
-        return stop;
     }
 
     private void startFlightExtraction(String uri) {
-//        //Use Service
-//        Intent startExtraction = new Intent(this, FlightIntentService.class);
-//        startExtraction.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION);
-//        startService(startExtraction);
 
         //Use loader
         taskText.setText(R.string.tv_extract_flights);
@@ -233,6 +306,24 @@ public class MainActivity extends AppCompatActivity {
             loaderManager.initLoader(EXTRACT_FLIGHTS_LOADER, bundle, getFlightObject);
         } else {
             loaderManager.restartLoader(EXTRACT_FLIGHTS_LOADER, bundle, getFlightObject);
+        }
+    }
+
+    private void startAlarmFlightExtraction(String uri) {
+//        //Use Service
+
+
+        //Use loader
+        taskText.setText(R.string.tv_extract_flights);
+
+        Bundle bundle = new Bundle();
+        bundle.putString("parse", uri);
+        LoaderManager loaderManager = getSupportLoaderManager();
+        Loader<FlightObject> getFlightLoader = loaderManager.getLoader(EXTRACT_FLIGHTS_LOADER);
+        if (getFlightLoader == null) {
+            loaderManager.initLoader(EXTRACT_FLIGHTS_LOADER, bundle, getAlarmFlightObject);
+        } else {
+            loaderManager.restartLoader(EXTRACT_FLIGHTS_LOADER, bundle, getAlarmFlightObject);
         }
     }
 
@@ -254,6 +345,49 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void parseAlarmRemainingFlights(int index, String parse) {
+        if (index < 0) {
+            String a = "";
+        }
+        taskText.setText(R.string.tv_extract_flights);
+        Bundle bundle = new Bundle();
+        bundle.putInt("index", index);
+        bundle.putString("parse", parse);
+        LoaderManager loaderManager = getSupportLoaderManager();
+        Loader<FlightObject> getFlightLoader = loaderManager.getLoader(EXTRACT_FLIGHTS_STRING_LOADER);
+        if (getFlightLoader == null) {
+            loaderManager.initLoader(EXTRACT_FLIGHTS_STRING_LOADER, bundle, getAlarmFlightObjectString);
+        } else {
+            loaderManager.restartLoader(EXTRACT_FLIGHTS_STRING_LOADER, bundle, getAlarmFlightObjectString);
+        }
+
+    }
+
+    public void getFlightTimeFrame() {
+        LoaderManager loaderManager = getSupportLoaderManager();
+        Loader<Integer[]> getTimeFrame = loaderManager.getLoader(EXTRACT_FLIGHT_TIME_FRAME);
+        if (getTimeFrame == null) {
+            loaderManager.initLoader(EXTRACT_FLIGHT_TIME_FRAME, null, getFlightTimeFrames);
+        } else {
+            loaderManager.restartLoader(EXTRACT_FLIGHT_TIME_FRAME, null, getFlightTimeFrames);
+        }
+    }
+
+    private void lowerFirstAlarm() {
+        mFirstAlarms--;
+        alarmsRemaining.setText("" + mFirstAlarms);
+    }
+
+    private void lowerUpdateNeed() {
+        updateArrayCount--;
+        updatingNeeded.setText("" + updateArrayCount);
+    }
+
+    public void startTimeParser(View view) {
+        Intent intent = new Intent(MainActivity.this, SetupTimeFrameService.class);
+        startService(intent);
+    }
+
 
 //  <----------------------------------Broadcast Receiver------------------------------------------>
 
@@ -263,31 +397,52 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
 
             String action = intent.getAction();
+            String label = intent.getStringExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL);
 
             if (action.equals(IntentActions.FLIGHT_EXTRACTED_DONE)) {
+                if (label.equals(IntentActions.INTENT_INITIAL)) {
 
-                ArrayList<FlightObject> arraySend = arrayList;
+                    ArrayList<FlightObject> arraySend = mArrayList;
 
-                Intent saveTodatabase = new Intent(MainActivity.this,
-                        FlightIntentService.class);
-                saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
-                saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
-                        arraySend);
-                saveTodatabase.putExtra(IntentActions.ACTION_START_INITIAL_DATABASE_SAVE, "initial");
-                taskText.setText(R.string.tv_task_saving_to_databse);
-                startService(saveTodatabase);
+                    Intent saveTodatabase = new Intent(MainActivity.this,
+                            FlightIntentService.class);
+                    saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
+                    saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
+                            arraySend);
+                    saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
+                    taskText.setText(R.string.tv_task_saving_to_databse);
+                    startService(saveTodatabase);
+                } else if (label.equals("")) {
+
+                    ArrayList<FlightObject> arraySend = mArrayList;
+
+                    Intent saveTodatabase = new Intent(MainActivity.this,
+                            FlightIntentService.class);
+                    saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
+                    saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
+                            arraySend);
+                    saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                    taskText.setText(R.string.tv_task_saving_to_databse);
+                    startService(saveTodatabase);
+                }
             }
 
             //The flight database was save sucecessfully.
             else if (action.equals(IntentActions.DATABASE_FLIGHT_INSERTED_SUCCESS)) {
-                taskText.setText("");
+                if (label.equals(IntentActions.INTENT_INITIAL)) {
+                    taskText.setText("");
 
-                //Extract flights that need updating.
-                Intent getFlightsForUpdate = new Intent(MainActivity.this,
-                        FlightIntentService.class);
-                getFlightsForUpdate.setAction(FlightExtractionTasks.ACTION_GET_FLIGHTS_TO_UPDATE);
-                taskText.setText("Getting flights for update");
-                startService(getFlightsForUpdate);
+                    //Extract flights that need updating.
+                    Intent getFlightsForUpdate = new Intent(MainActivity.this,
+                            FlightIntentService.class);
+                    getFlightsForUpdate.setAction(FlightExtractionTasks.ACTION_GET_FLIGHTS_TO_UPDATE);
+                    getFlightsForUpdate.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
+                    taskText.setText("Getting flights for update");
+                    startService(getFlightsForUpdate);
+                    if (!allDayAlarmsSetup) {
+                        setupAlarmsForDay();
+                    }
+                }
 
 
             }
@@ -299,31 +454,41 @@ public class MainActivity extends AppCompatActivity {
 
             //Job service success received array list of flights to be updated
             else if (action.equals(IntentActions.FLIGHT_ARRAYLIST_FOR_UPDATE_EXTRACTED)) {
-                taskText.setText("");
-                ArrayList<FlightObject> arrayList = intent.getParcelableArrayListExtra(
-                        IntentActions.PUT_EXTRA_PARCEL_ARRAY);
-                arrayListUpdate = arrayList;
-                int size = arrayListUpdate.size();
 
-//                int time = 1138;
+
+                taskText.setText("");
+                ArrayList<FlightObject> arrayListParcelExtracted = intent.getParcelableArrayListExtra(
+                        IntentActions.PUT_EXTRA_PARCEL_ARRAY);
+
+                //erace the next three line and uncomment following.
+//                FlightObject testOne =arrayListParcelExtracted.get(0);//***********************
+//                arrayListUpdate = new ArrayList<>();//*************************************
+//                arrayListUpdate.add(testOne);//******************************************
+
+
+                arrayListUpdate = arrayListParcelExtracted;
 
 
                 Intent alarmIntent = new Intent(MainActivity.this,
                         AlarmService.class);
                 alarmIntent.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
-                        arrayList);
+                        arrayListParcelExtracted);
                 alarmIntent.putExtra(IntentActions.INTENT_SEND_INT, arrayIndex);
-//                alarmIntent.putExtra(IntentActions.INTENT_SEND_SECOND_INT, time);
 
                 taskText.setText("Setting alarms");
-                updateArrayCount = arrayList.size();
+                updateArrayCount = arrayListParcelExtracted.size();
                 updatingNeeded.setText("" + updateArrayCount);
 
                 Toast.makeText(context, "Updated fligts extracted, ready for alarms",
                         Toast.LENGTH_SHORT).show();
 
                 startService(alarmIntent);
+
             } else if (action.equals(IntentActions.ACTION_CONTINUE_SETTING_ALARMS)) {
+                lowerUpdateNeed();
+
+                arrayIndex++;
+
                 taskText.setText("");
                 mFirstAlarms++;
                 alarmsRemaining.setText("" + mFirstAlarms);
@@ -333,159 +498,195 @@ public class MainActivity extends AppCompatActivity {
                 arrayListUpdate = new ArrayList<FlightObject>();
                 arrayListUpdate = updatedArrayslIst;
 
-                if (arrayIndex < arrayListUpdate.size()-1) {
-                    arrayIndex++;
+                if (arrayIndex == arrayListUpdate.size()) {
+                    Intent intentUpdateRequestCode = new Intent(MainActivity.this,
+                            FlightIntentService.class);
+                    intentUpdateRequestCode.setAction(FlightExtractionTasks.ACTION_UPDATE_ALARMS_REQUEST_CODE);
+                    intentUpdateRequestCode.putParcelableArrayListExtra(IntentActions.ACTION_SEND_PARCEL_REQUEST_CODE,
+                            arrayListUpdate);
+                    startService(intentUpdateRequestCode);
+                } else {
                     int time = intent.getIntExtra(IntentActions.INTENT_SEND_SECOND_INT, -2);
                     Intent alarmIntent = new Intent(MainActivity.this,
                             AlarmService.class);
                     alarmIntent.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
                             arrayListUpdate);
-                    if (arrayIndex == arrayListUpdate.size()-2){
-                        String a ="";
-                    }
+                    int size = arrayListUpdate.size();
 
                     alarmIntent.putExtra(IntentActions.INTENT_SEND_INT, arrayIndex);
                     alarmIntent.putExtra(IntentActions.INTENT_SEND_SECOND_INT, time);
                     taskText.setText("Setting alarms");
                     startService(alarmIntent);
+                }
+
+            } else if (action.equals(IntentActions.ACTION_CURRENT_ARRAYLIST_REQUEST_CODES_COMPLETED)) {
+
+                //setupAlarmsForDay();
+                systemMessage.setText("All request code batches competed.");
 
 
+            } else if (action.equals(IntentActions.ACTION_GET_STATUS_FLIGHT)) {
+
+
+                taskText.setText("Get status of flight");
+                long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
+                String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING);
+                String status = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
+
+                flightUpdated.setText("");
+                preUpdateStatus.setText("");
+                statusAfterUpdate.setText("");
+
+
+                Intent getFlightStatus = new Intent(MainActivity.this, FlightIntentService.class);
+                getFlightStatus.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION);
+                getFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, flightId);
+                getFlightStatus.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
+                getFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS, status);
+                startService(getFlightStatus);
+            } else if (action.equals(IntentActions.ACTION_FIRST_ALARM_COMPLETE)) {
+                lowerFirstAlarm();
             }
-            if (arrayIndex == arrayListUpdate.size()-1)
-                Toast.makeText(context, "Done setting up alarms", Toast.LENGTH_SHORT).show();
-            //Update all the flight's.
-            Intent intentUpdateRequestCode = new Intent(MainActivity.this,
-                    FlightIntentService.class);
-            intentUpdateRequestCode.setAction(FlightExtractionTasks.ACTION_UPDATE_ALARMS_REQUEST_CODE);
-            intentUpdateRequestCode.putParcelableArrayListExtra(IntentActions.ACTION_SEND_PARCEL_REQUEST_CODE,
-                    arrayListUpdate);
-            startService(intentUpdateRequestCode);
+
+            //Start loader that will update the database.
+            else if (action.equals(IntentActions.FLIGHT_UPDATE_DATABASE_STATUS))
+
+            {
+                FlightObject object = intent.getExtras().getParcelable(IntentActions.INTENT_SEND_PARCEL);
+                String name = object.getFlightName();
+                String pre = object.getFlightStatus();
+                String post = object.getPostStatus();
+
+                flightUpdated.setText(name);
+                preUpdateStatus.setText(pre);
+                statusAfterUpdate.setText(post);
 
 
-        }else if(action.equals(IntentActions.ACTION_CURRENT_ARRAYLIST_REQUEST_CODES_COMPLETED))
-
-        {
-            systemMessage.setText("All request code batches competed.");
-
-
-        } else if(action.equals(IntentActions.ACTION_GET_STATUS_FLIGHT))
-
-        {
-            mFirstAlarms--;
-            updateArrayCount--;
-            updatingNeeded.setText("" + updateArrayCount);
-            alarmsRemaining.setText("" + mFirstAlarms);
-
-            taskText.setText("Get status of flight");
-            long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
-            String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING);
-            String status = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
-
-            flightUpdated.setText("" + flightName);
-            statusToBeUpdated.setText("" + status);
-            statusAfterUpdate.setText("");
-
-
-            Intent getFlightStatus = new Intent(MainActivity.this, FlightIntentService.class);
-            getFlightStatus.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION);
-            getFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, flightId);
-            getFlightStatus.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
-            startService(getFlightStatus);
-        }
-
-        //Start loader that will update the database.
-            else if(action.equals(IntentActions.FLIGHT_UPDATE_DATABASE_STATUS))
-
-        {
-            FlightObject object = intent.getExtras().getParcelable(IntentActions.INTENT_SEND_PARCEL);
-            String status = object.getFlightStatus();
-            statusAfterUpdate.setText(status);
-
-            Intent updateStatus = new Intent(MainActivity.this, FlightIntentService.class);
-            updateStatus.setAction(FlightExtractionTasks.ACTION_DATABASE_UPDATE_STATUS);
-            updateStatus.putExtra(IntentActions.INTENT_SEND_PARCEL, object);
-            startService(updateStatus);
-        }
-        //sets up second alarm
-            else if(action.equals(IntentActions.ACTION_SETUP_SECOND_ALARM)){
-            taskText.setText("Setting up second alarm");
-
-            FlightObject parcelForSecondAlarm = intent.getParcelableExtra(
-                    IntentActions.INTENT_SEND_PARCEL_FOR_SECOND_ALARM);
-            Intent secondAlarmSetup = new Intent(MainActivity.this, SecondAlarmService.class);
-            secondAlarmSetup.putExtra(IntentActions.INTENT_SEND_PARCEL_TO_SECOND_ALARM_SERVICE,
-                    parcelForSecondAlarm);
-            startService(secondAlarmSetup);
-        }
-        //Second alarm was successfully setup
-            else if(action.equals(IntentActions.ACTION_SECOND_ALARM_SUCCESSUFULLY_SETUP)){
-            taskText.setText("");
-            mSecondAlarm++;
-            alarmsForReUpdating.setText("" + mSecondAlarm);
-        } else if(action.equals(IntentActions.ACTION_GET_SECOND_STATUS_FLIGHT))
-
-        {
-            taskText.setText("Getting second status");
-
-            long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
-            String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING);
-
-
-            Intent getSeconfFlightStatus = new Intent(MainActivity.this, FlightIntentService.class);
-            getSeconfFlightStatus.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFO_FOR_SECOND_ALARM);
-            getSeconfFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, flightId);
-            getSeconfFlightStatus.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
-            startService(getSeconfFlightStatus);
-
-        } else if(action.equals(IntentActions.ACTION_SECOND_ALARM_COMPLETE)) {
-            taskText.setText("");
-            mSecondAlarm--;
-            alarmsForReUpdating.setText("" + mSecondAlarm);
-        } else if(action.equals(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS))
-
-        {
-            mAlldayAlarms = intent.getIntExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, -2);
-            int hour = intent.getIntExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, -2);
-            if (mAlldayAlarms > 0) {
-
-                mAllDayAlarmSet++;
-                allDayAlarms.setText("" + mAllDayAlarmSet);
-                mAlldayAlarms--;
+                Intent updateStatus = new Intent(MainActivity.this, FlightIntentService.class);
+                updateStatus.setAction(FlightExtractionTasks.ACTION_DATABASE_UPDATE_STATUS);
+                updateStatus.putExtra(IntentActions.INTENT_SEND_PARCEL, object);
+                startService(updateStatus);
             }
-            if (mAlldayAlarms > 0 && hour > -1) {
+            //sets up second alarm
+            else if (action.equals(IntentActions.ACTION_SETUP_SECOND_ALARM)) {
+                taskText.setText("Setting up second alarm");
 
-
-                Intent continueIntent = new Intent(MainActivity.this, AllDayAlarmService.class);
-                continueIntent.putExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, mAlldayAlarms);
-                continueIntent.putExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, hour);
-                startService(continueIntent);
-
+                FlightObject parcelForSecondAlarm = intent.getParcelableExtra(
+                        IntentActions.INTENT_SEND_PARCEL_FOR_SECOND_ALARM);
+                Intent secondAlarmSetup = new Intent(MainActivity.this, SecondAlarmService.class);
+                secondAlarmSetup.putExtra(IntentActions.INTENT_SEND_PARCEL_TO_SECOND_ALARM_SERVICE,
+                        parcelForSecondAlarm);
+                startService(secondAlarmSetup);
             }
-            if (mAlldayAlarms == 0) {
-                Toast.makeText(context, "Daily Alarms setup", Toast.LENGTH_SHORT).show();
-                systemMessage.setText("Daily alarms setup");
+            //Second alarm was successfully setup
+            else if (action.equals(IntentActions.ACTION_SECOND_ALARM_SUCCESSUFULLY_SETUP)) {
+                taskText.setText("");
+                mSecondAlarm++;
+                alarmsForReUpdating.setText("" + mSecondAlarm);
 
+
+            } else if (action.equals(IntentActions.ACTION_GET_SECOND_STATUS_FLIGHT)) {
+                taskText.setText("Getting second status");
+
+                long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
+                String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING);
+                String flightStatus = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
+                int requestCode = intent.getIntExtra(IntentActions.INTENT_REQUEST_CODE, -2);
+
+                preSecondAlarm.setText("" + flightStatus);
+
+
+                Intent getSeconfFlightStatus = new Intent(MainActivity.this, FlightIntentService.class);
+                getSeconfFlightStatus.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFO_FOR_SECOND_ALARM);
+                getSeconfFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, flightId);
+                getSeconfFlightStatus.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
+                getSeconfFlightStatus.putExtra(IntentActions.INTENT_REQUEST_CODE, requestCode);
+                startService(getSeconfFlightStatus);
+
+            } else if (action.equals(IntentActions.ACTION_SECOND_ALARM_COMPLETE)) {
+                taskText.setText("");
+                mSecondAlarm--;
+                alarmsForReUpdating.setText("" + mSecondAlarm);
+
+            } else if (action.equals(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS)) {
+                mAlldayAlarms = intent.getIntExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, -2);
+                int hour = intent.getIntExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, -2);
+                if (mAlldayAlarms > 0) {
+
+                    mAllDayAlarmSet++;
+                    allDayAlarms.setText("" + mAllDayAlarmSet);
+                    mAlldayAlarms--;
+                }
+                if (mAlldayAlarms > 0 && hour > -1) {
+
+
+                    Intent continueIntent = new Intent(MainActivity.this, AllDayAlarmService.class);
+                    continueIntent.putExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, mAlldayAlarms);
+                    continueIntent.putExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, hour);
+                    startService(continueIntent);
+
+                }
+                if (mAlldayAlarms == 0) {
+                    Toast.makeText(context, "Daily Alarms setup", Toast.LENGTH_SHORT).show();
+                    systemMessage.setText("Daily alarms setup");
+
+                }
+            } else if (action.equals(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL)) {
+                int newFlightNumber = intent.getIntExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, -2);
+                if (newFlightNumber > 0) {
+                    for (int i = 0; i < newFlightNumber; i++) {
+                        count = count + 1;
+                        countText.setText("" + count);
+                    }
+                    Intent getNewFlights = new Intent(MainActivity.this, FlightIntentService.class);
+                    getNewFlights.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE);
+                    getNewFlights.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                    startService(getNewFlights);
+                }
+
+            } else if (action.equals(IntentActions.ACTION_INTENT_CANCEL_ALARM)) {
+                int requestCode = intent.getIntExtra(IntentActions.INTENT_REQUEST_CODE, -2);
+                String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING_FLIGHT);
+                Intent cancelAlarm = new Intent(MainActivity.this, ProcessSecondAlarmReceiver.class);
+                PendingIntent alarm = (PendingIntent.getBroadcast(
+                        MainActivity.this,
+                        requestCode,
+                        cancelAlarm,
+                        PendingIntent.FLAG_UPDATE_CURRENT));
+                AlarmManager alarmMgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmMgr != null) {
+                    alarmMgr.cancel(alarm);
+                    taskText.setText("");
+                    mSecondAlarm--;
+                    alarmsForReUpdating.setText("" + mSecondAlarm);
+                    Toast.makeText(MainActivity.this, "Alarm Canceled: " + flightName, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "Alarm not canceled: " + flightName, Toast.LENGTH_SHORT).show();
+                }
+
+            } else if (action.equals(IntentActions.ACTION_START_NEW_PARSE_FOR_ALL_FLIGHTS)) {
+                startAlarmExtractionExtraction();
+
+            } else if (action.equals(IntentActions.ACTION_GET_PARSER)) {
+                getFlightTimeFrame();
+            } else if (action.equals(IntentActions.ACTION_START_ELEVEN_PM_PARSE)) {
+                startConcatenateParse();
+            } else if (action.equals(IntentActions.ACTION_START_RESET)) {
+                restartDay();
+            } else if (action.equals(IntentActions.INTENT_SEND_TOAST)) {
+                String message = intent.getStringExtra(IntentActions.INTENT_SEND_TOAST_MESSAGE);
+                if (message.equals("Second Alarm failed")) {
+                    systemMessage.setText("Second Alarm did not close status");
+                }
+                Toast.makeText(context, "" + message, Toast.LENGTH_SHORT).show();
             }
         }
-            else if(action.equals(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL))
 
-        {
-            Toast.makeText(context, "Re-parse complete", Toast.LENGTH_SHORT).show();
-        }
-            else if(action.equals(IntentActions.INTENT_SEND_TOAST))
-
-        {
-            String message = intent.getStringExtra(IntentActions.INTENT_SEND_TOAST_MESSAGE);
-            if (message.equals("Second Alarm failed")) {
-                systemMessage.setText("Second Alarm did not close status");
-            }
-            Toast.makeText(context, "" + message, Toast.LENGTH_SHORT).show();
-        }
     }
 
-}
-
     //<----------------------------------LOADERS--------------------------------------------------->
+
+
     private final LoaderManager.LoaderCallbacks<FlightObject> getFlightObject =
             new LoaderManager.LoaderCallbacks<FlightObject>() {
                 @Override
@@ -513,7 +714,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     } else {
                         flightNameText.setText(data.getFlightName());
-                        arrayList.add(data);
+                        mArrayList.add(data);
                         count++;
                         countText.setText("" + count);
                         mCurrentParsedString = data.getParsedString();
@@ -535,8 +736,73 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     if (loaderCount == 0) {
+                        totalNumberOFFlights = count;
                         //Setup broadcast here
                         Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
+                        broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
+                        sendBroadcast(broadcastIntent);
+                        Toast.makeText(MainActivity.this, "Extraction Complete", Toast.LENGTH_SHORT).show();
+
+                    }
+                }
+
+                @Override
+                public void onLoaderReset(Loader<FlightObject> loader) {
+
+                }
+            };
+    private final LoaderManager.LoaderCallbacks<FlightObject> getAlarmFlightObject =
+            new LoaderManager.LoaderCallbacks<FlightObject>() {
+                @Override
+                public Loader<FlightObject> onCreateLoader(int id, Bundle args) {
+
+                    String uri = args.getString("parse");
+                    return new GetFlightObjectLoader(MainActivity.this, uri);
+                }
+
+                @Override
+                public void onLoadFinished(Loader<FlightObject> loader, FlightObject data) {
+
+                    if (data.getFlightName().equals("null")) {
+                        lastFlight = true;
+                        taskText.setText("");
+
+                        loaderCount--;
+                        if (loaderCount > 0) {
+                            pageCount++;
+                            String parseString = FlightUriBuilder.buildUri(pageCount);
+                            if (parseString.equals("https://www.airport-la.com/lax/arrivals?t=1")) {
+
+                            }
+                            startAlarmFlightExtraction(parseString);
+                        }
+                    } else {
+                        flightNameText.setText(data.getFlightName());
+                        mArrayList.add(data);
+                        mCurrentParsedString = data.getParsedString();
+                        if (data.getIsLastFlight()) {
+                            lastFlight = true;
+                            taskText.setText("");
+
+                            loaderCount--;
+                            if (loaderCount > 0) {
+                                pageCount++;
+                                String parseString = FlightUriBuilder.buildUri(pageCount);
+                                startAlarmFlightExtraction(parseString);
+                            }
+                            String a = "";
+                        } else if (!data.getIsLastFlight()) {
+                            int index = data.getNextFlightIndex();
+                            String parse = data.getParsedString();
+                            parseAlarmRemainingFlights(index, parse);
+                        }
+                    }
+                    if (loaderCount == 0) {
+                        totalNumberOFFlights = count;
+                        //Setup broadcast here
+                        totalNumberOFFlights = count;
+                        Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
+                        broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
                         sendBroadcast(broadcastIntent);
                         Toast.makeText(MainActivity.this, "Extraction Complete", Toast.LENGTH_SHORT).show();
                     }
@@ -562,7 +828,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onLoadFinished(Loader<FlightObject> loader, FlightObject data) {
                     flightNameText.setText(data.getFlightName());
-                    arrayList.add(data);
+                    mArrayList.add(data);
                     count++;
                     countText.setText("" + count);
                     mCurrentParsedString = data.getParsedString();
@@ -582,8 +848,10 @@ public class MainActivity extends AppCompatActivity {
                                 data.getParsedString());
                     }
                     if (loaderCount == 0) {
+                        totalNumberOFFlights = count;
                         //Setup broadcast here
                         Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
+                        broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
                         sendBroadcast(broadcastIntent);
                     }
                 }
@@ -593,6 +861,93 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             };
+
+    private final LoaderManager.LoaderCallbacks<FlightObject> getAlarmFlightObjectString =
+            new LoaderManager.LoaderCallbacks<FlightObject>() {
+                @Override
+                public Loader<FlightObject> onCreateLoader(int id, Bundle args) {
+                    int key = args.getInt("index");
+                    String parse = args.getString("parse");
+                    return new GetFlightsFromParsedStringLoader(MainActivity.this,
+                            parse,
+                            key);
+                }
+
+                @Override
+                public void onLoadFinished(Loader<FlightObject> loader, FlightObject data) {
+                    flightNameText.setText(data.getFlightName());
+                    mArrayList.add(data);
+                    mCurrentParsedString = data.getParsedString();
+                    if (data.getIsLastFlight()) {
+                        lastFlight = true;
+                        taskText.setText("");
+
+                        loaderCount--;
+                        if (loaderCount > 0) {
+                            pageCount++;
+                            String parseString = FlightUriBuilder.buildUri(pageCount);
+                            startAlarmFlightExtraction(parseString);
+                        }
+                        //Next page
+                    } else if (!data.getIsLastFlight()) {
+                        parseAlarmRemainingFlights(data.getNextFlightIndex(),
+                                data.getParsedString());
+                    }
+                    if (loaderCount == 0) {
+                        totalNumberOFFlights = count;
+                        //Setup broadcast here
+                        Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
+                        broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                        sendBroadcast(broadcastIntent);
+
+                    }
+                }
+
+                @Override
+                public void onLoaderReset(Loader<FlightObject> loader) {
+
+                }
+            };
+
+    private final LoaderManager.LoaderCallbacks<ArrayList<Integer>> getFlightTimeFrames =
+            new LoaderManager.LoaderCallbacks<ArrayList<Integer>>() {
+                @NonNull
+                @Override
+                public Loader<ArrayList<Integer>> onCreateLoader(int id, @Nullable Bundle args) {
+                    return new GetFlightsTimeFrames(MainActivity.this);
+                }
+
+                @Override
+                public void onLoadFinished(@NonNull Loader<ArrayList<Integer>> loader, ArrayList<Integer> data) {
+                    if (data != null) {
+                        int length = data.size();
+                        if (length == 1) {
+
+                            minutes30.setText("" + data.get(0));
+                        } else if (length == 2) {
+                            minutes30.setText("" + data.get(0));
+                            hour1.setText("" + data.get(1));
+                        } else if (length == 3) {
+                            minutes30.setText("" + data.get(0));
+                            hour1.setText("" + data.get(1));
+                            hour2.setText("" + data.get(2));
+                        }
+                        String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+
+                        timeStamp.setText(currentDateTimeString);
+
+                        FlightSyncObject sync = new FlightSyncObject(data.get(0), data.get(1), data.get(2), currentDateTimeString);
+                        mDatabaseReference.push().setValue(sync);
+
+                    }
+                }
+
+                @Override
+                public void onLoaderReset(@NonNull Loader<ArrayList<Integer>> loader) {
+
+                }
+            };
+
 
     @Override
     protected void onResume() {
@@ -606,31 +961,12 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(mReciever);
     }
 
-    public void testMethod(ArrayList<FlightObject> arrayList) {
-
-
-    }
-
-    public void testAlarm(View view) {
-        Intent intent = new Intent(this, ProcessAlarmReceiver.class);
-        boolean alarm = (PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_NO_CREATE)) != null;
-        if (alarm) {
-            Toast.makeText(this, "ALARM FOUND", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "ALARM NIT FOUND", Toast.LENGTH_SHORT).show();
-        }
+    public void testMethod(View view) {
 
     }
 
     public void cancelAlarm(View view) {
-        Intent intent = new Intent(this, ProcessAlarmReceiver.class);
-        PendingIntent alarm = (PendingIntent.getBroadcast(this, 1, intent, PendingIntent.FLAG_NO_CREATE));
-        AlarmManager alarmMgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        if (alarmMgr != null) {
-            alarmMgr.cancel(alarm);
-            Toast.makeText(this, "Alarm Canceled", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "Alarm not canceled", Toast.LENGTH_SHORT).show();
-        }
+        Intent intent = new Intent(IntentActions.ACTION_INTENT_CANCEL_ALARM);
+        sendBroadcast(intent);
     }
 }

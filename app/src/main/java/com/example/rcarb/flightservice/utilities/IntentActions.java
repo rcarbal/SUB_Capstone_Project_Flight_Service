@@ -45,9 +45,27 @@ public class IntentActions {
 
     public final static String ACTION_PROCESS_REMAINING_DAILY_ALARMS = "process-remaining-daily-alarms";
 
+    public final static String ACTION_FINISHED_ALARMS = "alarms-finished";
+
     public final static String ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL = "save-not initial";
 
     public final static String ACTION_START_INITIAL_DATABASE_SAVE = "initial-datatabse-save";
+
+    public final static String ACTION_START_NEW_PARSE_FOR_ALL_FLIGHTS = "start-new-complete-parse";
+
+    public final static String ACTION_FIRST_ALARM_COMPLETE = "first-alarm-complete";
+
+    public final static String INTENT_SENDING_NEW_FLIGHTS_DATABASE = "new-flights-send";
+
+    public final static String ACTION_INTENT_CANCEL_ALARM = "cancel-alarm";
+
+    public final static String ACTION_GET_PARSER = "get-parser";
+
+    public final static String ACTION_START_ELEVEN_PM_PARSE = "eleven-alarm";
+
+    public final static String ACTION_SETUP_RESTART_ALARM = "setup-restart-alarm";
+
+    public final static String ACTION_START_RESET ="start-reset";
 
 
     public final static String ACTION_RECEIVED_ALARM = "alarm-received";
@@ -73,4 +91,9 @@ public class IntentActions {
     public final static String INTENT_SEND_STRING_FLIGHT = "send-string-flight";
     public final static String INTENT_SEND_FLIGHT_COLUMN_ID = "column-id";
     public final static String INTENT_SEND_FLIGHT_STATUS = "send-flight-status";
+    public final static String INTENT_SEND_ALARM_PASS_LABEL = "alarm-parse";
+    public final static String INTENT_INITIAL ="intial-intent";
+
+
+    public final static String VALUE_ALARM_PASS = "alarm_pass";
 }

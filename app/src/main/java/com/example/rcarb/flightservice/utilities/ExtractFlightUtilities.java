@@ -21,7 +21,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * Created by rcarb on 2/20/2018.
@@ -55,6 +59,7 @@ public class ExtractFlightUtilities {
         return resString;
     }
 
+
     public static FlightObject saveFlightStringToObject(String flightString) {
 
         FlightObject flight = new FlightObject();
@@ -73,6 +78,9 @@ public class ExtractFlightUtilities {
             flight.setFlightScheduledTime(-2);
             return flight;
         }
+        //Get day
+        String day = ExtractFlightUtilities.getDay(flightString);
+        flight.setDay(day);
 
         int startIndex = flightString.indexOf("/airlines/");
         int nextIndex = -1;
@@ -104,6 +112,10 @@ public class ExtractFlightUtilities {
             int dateIndex = fligthName.indexOf("&");
             String replacedString = fligthName.substring(dateIndex, nameLength);
             fligthName = fligthName.replace(replacedString, "");
+        }
+        if (fligthName.equals("WN6560")){
+
+            String a ="";
         }
 
         flight.setFlightName(fligthName);
@@ -158,8 +170,94 @@ public class ExtractFlightUtilities {
         return flight;
     }
 
+    //Extract the second flight
+    public static FlightObject getInfoForSingleFlightsSite2(String parseString){
+        FlightObject object = new FlightObject();
+
+        int indexStart = parseString.indexOf("flight_arr");
+        int indexEnd = parseString.indexOf("/div", indexStart);
+
+        String currentString = null;
+
+        try {
+            currentString = parseString.substring(indexStart, indexEnd);
+        } catch (Exception e) {
+            e.printStackTrace();
+            FlightObject flightObject = new FlightObject();
+            return flightObject;
+        }
+
+        //Get the scheduled time of the flight
+        int startColonFind = currentString.indexOf("Scheduled Arrival Time:");
+        int endColonFind = currentString.indexOf(":", startColonFind);
+
+        String findScheduledTimeColon = currentString.substring(startColonFind, endColonFind);
+        int colonIndex = findScheduledTimeColon.indexOf(":");
+
+        boolean hasPm = false;
+        if (findScheduledTimeColon.contains("pm")){
+            hasPm = true;
+        }
+
+        String scheduled;
+        int timeIndex =-2;
+        if (colonIndex <0) {
+            scheduled = "-2";
+        } else {
+            timeIndex = currentString.indexOf(":", colonIndex + 2);
+            scheduled = currentString.substring(timeIndex - 2, timeIndex + 3);
+            scheduled = scheduled.replace(":", "");
+            if (!DataCheckingUtils.isNumber(scheduled)) {
+                scheduled = "-2";
+            }
+            int scheduledInteger = Integer.valueOf(scheduled);
+            object.setFlightScheduledTime(scheduledInteger);
+        }
+
+
+        //Get actual flight
+        String actual;
+        int actualColon = currentString.indexOf(":", timeIndex + 1);
+        if (actualColon<0){
+            actual = "-2";
+        }else {
+            actual = currentString.substring(actualColon - 2, actualColon + 3);
+            actual = actual.replace(":", "");
+            if (!DataCheckingUtils.isNumber(actual)) {
+                actual = "-2";
+            }
+        }
+
+        int actualInteger = Integer.valueOf(actual);
+        object.setActualArrivalTime(actualInteger);
+
+        //Get Status
+        int indexStatusStart = parseString.indexOf("flight_status");
+        int indexStatusEnd = parseString.indexOf("/h2", indexStart);
+
+        String statusSting  = null;
+        try {
+            statusSting = parseString.substring(indexStatusStart, indexStatusEnd);
+        } catch (Exception e) {
+            e.printStackTrace();
+            FlightObject flightObject = new FlightObject();
+            return flightObject;
+        }
+
+
+
+        String statusString = ExtractFlightUtilities.getStatus(currentString);
+        object.setFlightStatus(statusString);
+
+
+        return object;
+
+
+
+    }
+
     //get inforamtion for a single flight.
-    public static FlightObject getInfoForSIngleFlight(String parseString) {
+    public static FlightObject getInfoForSIngleFlightSite1(String parseString) {
         FlightObject object = new FlightObject();
 
         int indexStart = parseString.indexOf("flight_arrival=");
@@ -210,8 +308,11 @@ public class ExtractFlightUtilities {
             object.setActualArrivalTime(actualInteger);
 
             //Get Status
-            String statusString = ExtractFlightUtilities.getStatus(currentString);
-            object.setFlightStatus(statusString);
+            int indexStarting = currentString.indexOf("img src=");
+            int indexEnding = currentString.length();
+            String statusStringToParse = currentString.substring(indexStarting, indexEnding);
+            String statusString = ExtractFlightUtilities.getStatus(statusStringToParse);
+            object.setPostStatus(statusString);
 
 
             return object;
@@ -226,7 +327,12 @@ public class ExtractFlightUtilities {
             String a = "";
         }
 
+
         FlightObject flight = new FlightObject();
+
+        //Get day
+        String day = ExtractFlightUtilities.getDay(flightString);
+        flight.setDay(day);
 
         int startIndex = startAtIndex;
         int nextIndex = -1;
@@ -241,6 +347,9 @@ public class ExtractFlightUtilities {
 
 
         String currentSubstring = flightString.substring(startIndex, nextIndex);
+
+
+
         //get airline
         int startAirlineIndex = currentSubstring.indexOf(">");
         int endAirlineIndex = currentSubstring.indexOf("</a>");
@@ -376,9 +485,33 @@ public class ExtractFlightUtilities {
             return "Cancelled";
         } else if (string.contains("Scheduled")) {
             return "Scheduled";
-        } else {
+        } else if (string.contains("Canceled")){
+            return "Cancelled";
+        }
+        else {
             return "error";
         }
+    }
+
+    private static String getDay(String string){
+
+        String day ="";
+        if (string.contains("Monday")){
+            day = "Monday";
+        }else if (string.contains("Tuesday")){
+            day = "Tuesday";
+        }else if (string.contains("Wednesday")){
+            day = "Wednesday";
+        }else if (string.contains("Thursday")){
+            day = "Thursday";
+        }else if (string.contains("Friday")){
+            day = "Friday";
+        }else if (string.contains("Saturday")){
+            day = "Saturday";
+        }else if (string.contains("Sunday")){
+            day = "Sunday";
+        }
+        return day;
     }
 
 

@@ -20,7 +20,7 @@ public class FlightObject implements Parcelable {
     private int mFlightArrivalScheduledIndex= -2;
 
     private int mActualArrival =-2;
-    private String mStatusOfFlight= "null";
+    private String mPreStatus = "null";
 
     private String mAirport= "null";
     private  String mAirline = "null";
@@ -28,6 +28,8 @@ public class FlightObject implements Parcelable {
     private boolean mIsLastFLight = false;
     private String mParsedString = "null";
     private int mAlarmSet = -2;
+    private String mPostStatus = null;
+    private String mDay = "null";
 
     public FlightObject() {
     }
@@ -42,12 +44,14 @@ public class FlightObject implements Parcelable {
         mFlightArrivalScheduled = in.readInt();
         mFlightArrivalScheduledIndex = in.readInt();
         mActualArrival = in.readInt();
-        mStatusOfFlight = in.readString();
+        mPreStatus = in.readString();
         mAirport = in.readString();
         mAirline = in.readString();
         mIsLastFLight = in.readByte() != 0;
         mParsedString = in.readString();
         mAlarmSet = in.readInt();
+         mPostStatus = in.readString();
+         mDay = in.readString();
     }
 
     public static final Creator<FlightObject> CREATOR = new Creator<FlightObject>() {
@@ -104,11 +108,11 @@ public class FlightObject implements Parcelable {
     }
 
     public void setFlightStatus(String flightStatus){
-        mStatusOfFlight = flightStatus;
+        mPreStatus = flightStatus;
     }
 
     public String getFlightStatus(){
-        return mStatusOfFlight;
+        return mPreStatus;
     }
 
     public void setNextFlightIndex(int index){
@@ -165,6 +169,21 @@ public class FlightObject implements Parcelable {
         return mParsedString;
     }
 
+    public void setPostStatus(String post){
+        mPostStatus = post;
+    }
+
+    public String getPostStatus(){
+        return mPostStatus;
+    }
+
+    public void setDay(String day){
+        mDay = day;
+    }
+    public String getDay(){
+        return mDay;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -180,7 +199,7 @@ public class FlightObject implements Parcelable {
         dest.writeInt(mFlightArrivalScheduled);
         dest.writeInt(mFlightArrivalScheduledIndex);
         dest.writeInt(mActualArrival);
-        dest.writeString(mStatusOfFlight);
+        dest.writeString(mPreStatus);
         dest.writeString(mAirport);
         dest.writeString(mAirline);
         dest.writeByte((byte) (mIsLastFLight ? 1 : 0));
@@ -189,5 +208,7 @@ public class FlightObject implements Parcelable {
         }
         dest.writeString(mParsedString);
         dest.writeInt(mAlarmSet);
+        dest.writeString(mPostStatus);
+        dest.writeString(mDay);
     }
 }

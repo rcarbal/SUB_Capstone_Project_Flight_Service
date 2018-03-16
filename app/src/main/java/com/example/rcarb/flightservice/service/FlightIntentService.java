@@ -26,10 +26,10 @@ public class FlightIntentService extends IntentService {
         assert intent != null;
         String action = intent.getAction();
         Context context = getApplicationContext();
+        String initial = intent.getStringExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL);
         if (action.equals(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE)) {
             ArrayList<FlightObject> flightObjectArrayList = intent.
                     getParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY);
-            String initial = intent.getStringExtra(IntentActions.ACTION_START_INITIAL_DATABASE_SAVE);
             FlightExtractionTasks.executeTask(
                     action,
                     flightObjectArrayList,
@@ -38,8 +38,10 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     null,
-                    initial);
+                    initial,
+                    -2);
         } else if (action.equals(FlightExtractionTasks.ACTION_GET_FLIGHTS_TO_UPDATE)) {
+
             FlightExtractionTasks.executeTask(action,
                     null,
                     context,
@@ -47,7 +49,20 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     null,
-                    "null");
+                    initial,
+                    -2);
+        } else if (action.equals(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE)){
+
+            FlightExtractionTasks.executeTask(action,
+                    null,
+                    context,
+                    -2,
+                    null,
+                    null,
+                    null,
+                    initial,
+                    -2);
+
         } else if (action.equals(FlightExtractionTasks.SETUP_ALARM_FOR_FLIGHT)) {
             ArrayList<FlightObject> flightArrayAlarms =
                     intent.getParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY);
@@ -58,11 +73,13 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     null,
-                    "null");
+                    initial,
+                    -2);
         } else if (action.equals(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION)) {
 
             long id = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
             String flight = intent.getStringExtra(IntentActions.INTENT_SEND_STRING_FLIGHT);
+            String status = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
             if (id == -2 || flight.equals("")) {
 //                Intent sendToast = new Intent(IntentActions.INTENT_SEND_TOAST);
 //                sendToast.putExtra(IntentActions.INTENT_SEND_STRING, "no flight or id in alarm");
@@ -75,9 +92,10 @@ public class FlightIntentService extends IntentService {
                         context,
                         id,
                         flight,
+                        status,
                         null,
-                        null,
-                        "null");
+                        initial,
+                        -2);
             }
         }
 
@@ -85,6 +103,7 @@ public class FlightIntentService extends IntentService {
 
             long id = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
             String flight = intent.getStringExtra(IntentActions.INTENT_SEND_STRING_FLIGHT);
+            int requestCode = intent.getIntExtra(IntentActions.INTENT_REQUEST_CODE, -2);
             if (id == -2 || flight.equals("")) {
 //                Intent sendToast = new Intent(IntentActions.INTENT_SEND_TOAST);
 //                sendToast.putExtra(IntentActions.INTENT_SEND_STRING, "no flight or id in alarm");
@@ -99,7 +118,8 @@ public class FlightIntentService extends IntentService {
                         flight,
                         null,
                         null,
-                        "null");
+                        initial,
+                        requestCode);
             }
         }
 
@@ -114,7 +134,8 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     null,
-                    "null");
+                    initial,
+                    -2);
         }
 
 
@@ -131,7 +152,8 @@ public class FlightIntentService extends IntentService {
                         null,
                         null,
                         flight,
-                        "null");
+                        initial,
+                        -2);
             }
         }
 

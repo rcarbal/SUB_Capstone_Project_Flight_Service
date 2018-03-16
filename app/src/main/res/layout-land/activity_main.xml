@@ -103,23 +103,6 @@
                 android:paddingStart="8dp" />
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/tv_flights_alarm_set" />
-
-            <TextView
-                android:id="@+id/remaining_alarms"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="8dp"
-                android:paddingStart="8dp" />
-        </LinearLayout>
 
         <!--special message-->
 
@@ -143,17 +126,17 @@
                 android:paddingStart="8dp" />
         </LinearLayout>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1.Check for database" />
+        <!--<Button-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="1.Check for database" />-->
         <!--android:onClick="checkForCurrentDatabase"/-->
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="setupAlarmsForDay"
-            android:text="Setup daily alarms" />
+            android:onClick="startTimeParser"
+            android:text="Setup time parser" />
 
         <!--<Button-->
         <!--android:layout_width="wrap_content"-->
@@ -177,8 +160,29 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="startExtraction"
-            android:text="Start Extractio" />
+            android:text="Start Extraction" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="startAlarmExtractionExtraction"
+            android:text="Start Second Extraction" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick=""
+            android:text="test" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="cancelAlarm"
+            android:text="Cancel Alarm" />
+
+
     </LinearLayout>
+
 
     <!--Second Section-->
     <LinearLayout
@@ -194,9 +198,27 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/tv_second_alarms_section"
+                android:text="@string/tv_fist_alarms_info"
                 android:textStyle="bold" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/tv_flights_alarm_set" />
+
+            <TextView
+                android:id="@+id/remaining_alarms"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="8dp"
+                android:paddingStart="8dp" />
         </LinearLayout>
 
         <LinearLayout
@@ -212,7 +234,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/tv_flight_updated" />
+                    android:text="@string/tv_flight_name" />
 
                 <TextView
                     android:id="@+id/first_updated_flight"
@@ -236,7 +258,7 @@
                     android:text="@string/tv_update_status_display" />
 
                 <TextView
-                    android:id="@+id/update_status"
+                    android:id="@+id/update_pre_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingLeft="8dp"
@@ -247,7 +269,8 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingBottom="16dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -260,6 +283,21 @@
                     android:layout_height="wrap_content"
                     android:paddingLeft="8dp"
                     android:paddingStart="8dp" />
+
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tv_second_alarm_info"
+                    android:textStyle="bold" />
+
             </LinearLayout>
             <!--Number of Alarms for re-updating-->
             <LinearLayout
@@ -280,15 +318,48 @@
                     android:paddingStart="8dp" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tv_flight_updated" />
+
+                <TextView
+                    android:id="@+id/pre_second_alarm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!--post update-->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tv_update_status_display" />
+
+                <TextView
+                    android:id="@+id/post_second_alarm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/tv_daily_alarm_section"
             android:paddingTop="20dp"
-            android:textStyle="bold"
-            />
+            android:text="@string/tv_daily_alarm_section"
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -298,17 +369,106 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/tv_alarms"
-                />
+                android:text="@string/tv_alarms" />
+
             <TextView
                 android:id="@+id/tv_alarms"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                />
+                android:layout_height="wrap_content" />
 
 
         </LinearLayout>
 
+        <!--Show time frame-->
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="50dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="30 minute time frame"
+                        android:textSize="13dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="40dp"
+                        android:paddingStart="40dp"
+                        android:text="1"
+                        android:textSize="150dp"
+                        android:id="@+id/tv_15_minutes"
+                        />
+
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1 hour time frame"
+                        android:textSize="13dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="40dp"
+                        android:paddingStart="40dp"
+                        android:text="2"
+                        android:textSize="150dp"
+                        android:id="@+id/tv_1_hour"/>
+
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2 hour time frame"
+                        android:textSize="13dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="40dp"
+                        android:paddingStart="40dp"
+                        android:text="3"
+                        android:textSize="150dp"
+                        android:id="@+id/tv_2_hours"/>
+
+
+                </LinearLayout>
+
+
+            </LinearLayout>
+
+
+
+        </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TIME STAMP"
+            android:textSize="25dp"
+            android:id="@+id/time_stamp"/>
+
 
     </LinearLayout>
+
+
 </LinearLayout>

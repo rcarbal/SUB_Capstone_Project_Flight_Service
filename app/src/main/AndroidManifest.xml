@@ -46,12 +46,22 @@
         <service android:name=".service.SecondAlarmService"/>
         <service android:name=".service.AllDayAlarmService" />
         <service android:name=".service.AllDayAlarmService"/>
+        <service android:name=".service.SetupTimeFrameService" />
+        <service android:name=".service.SetupTimeFrameService"/>
+        <service android:name=".service.SetupElevenPmAlarmService"/>
+        <service android:name=".service.RestartDayService" />
 
         <receiver android:name=".receivers.ProcessAlarmReceiver"
             android:exported="false" />
-        <receiver android:name=".receivers.ProcessSceondAlarmReceiver"
+        <receiver android:name=".receivers.ProcessSecondAlarmReceiver"
             android:exported="false"/>
         <receiver android:name=".receivers.AllDayAlarmReciever"
+            android:exported="false"/>
+        <receiver android:name=".receivers.AlarmTimeFrameReceiver"
+            android:exported="false"/>
+        <receiver android:name=".receivers.ElevenPmAlarmReceiver"
+            android:exported="false"/>
+        <receiver android:name=".receivers.RestartDayReceiver"
             android:exported="false"/>
     </application>
 
