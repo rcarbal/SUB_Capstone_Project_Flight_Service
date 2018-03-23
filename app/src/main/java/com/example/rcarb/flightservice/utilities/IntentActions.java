@@ -67,6 +67,8 @@ public class IntentActions {
 
     public final static String ACTION_START_RESET ="start-reset";
 
+    public final static String ACTION_INTENT_PARSE_CONCATINATE = "parse-concatenate";
+
 
     public final static String ACTION_RECEIVED_ALARM = "alarm-received";
 
@@ -77,6 +79,7 @@ public class IntentActions {
     public final static String INTENT_SEND_STRING = "send-string";
     public final static String INTENT_SEND_INT = "send-int";
     public final static String INTENT_SEND_SECOND_INT = "send-second-int";
+    public final static String INTENT_SEND_THRID_INT = "send-third-int";
     public final static String INTENT_SEND_LONG = "send-long";
     public final static String INTENT_SEND_TOAST = "send-toast";
     public final static String INTENT_SEND_PARCEL = "send-parcel";
@@ -93,6 +96,7 @@ public class IntentActions {
     public final static String INTENT_SEND_FLIGHT_STATUS = "send-flight-status";
     public final static String INTENT_SEND_ALARM_PASS_LABEL = "alarm-parse";
     public final static String INTENT_INITIAL ="intial-intent";
+    public final static String INTENT_SEND_BOOLEAN = "send-boolean";
 
 
     public final static String VALUE_ALARM_PASS = "alarm_pass";

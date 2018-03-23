@@ -34,9 +34,10 @@ import javax.net.ssl.SSLContext;
 public class ExtractFlightUtilities {
 
     public static String getFlightInfoFromWeb(String uri) {
+        String parseUri =uri;
         String resString = "";
         HttpClient httpClient = new DefaultHttpClient();
-        HttpGet httpGet = new HttpGet(uri);//website + string1 + string2
+        HttpGet httpGet = new HttpGet(parseUri);//website + string1 + string2
         try {
             HttpResponse responce;
             responce = httpClient.execute(httpGet);
@@ -174,86 +175,47 @@ public class ExtractFlightUtilities {
     public static FlightObject getInfoForSingleFlightsSite2(String parseString){
         FlightObject object = new FlightObject();
 
-        int indexStart = parseString.indexOf("flight_arr");
-        int indexEnd = parseString.indexOf("/div", indexStart);
+        int indexStart = parseString.indexOf("Actual");
+        int indexEnd = parseString.indexOf("Actual", indexStart+2);
+
+        //surround time
+        int estimated = parseString.indexOf("Estimated", indexEnd+20);
+
 
         String currentString = null;
 
         try {
-            currentString = parseString.substring(indexStart, indexEnd);
+            currentString = parseString.substring(indexEnd, estimated+15);
         } catch (Exception e) {
             e.printStackTrace();
             FlightObject flightObject = new FlightObject();
             return flightObject;
         }
 
-        //Get the scheduled time of the flight
-        int startColonFind = currentString.indexOf("Scheduled Arrival Time:");
-        int endColonFind = currentString.indexOf(":", startColonFind);
-
-        String findScheduledTimeColon = currentString.substring(startColonFind, endColonFind);
-        int colonIndex = findScheduledTimeColon.indexOf(":");
-
+        //get index surrounding the the time along with AM/PM
+        //get Actual
+        int indexToSkip = currentString.indexOf(":");
+        int indexActual = currentString.indexOf(":", indexToSkip+2);
+        String findPm = currentString.substring(indexActual, indexActual+8);
         boolean hasPm = false;
-        if (findScheduledTimeColon.contains("pm")){
+        if (findPm.contains("PM")){
             hasPm = true;
         }
+        //Get string of time.
+        String actualTimeString = currentString.substring(indexActual - 2, indexActual + 3);
+        actualTimeString = actualTimeString.replace(":", "");
 
-        String scheduled;
-        int timeIndex =-2;
-        if (colonIndex <0) {
-            scheduled = "-2";
-        } else {
-            timeIndex = currentString.indexOf(":", colonIndex + 2);
-            scheduled = currentString.substring(timeIndex - 2, timeIndex + 3);
-            scheduled = scheduled.replace(":", "");
-            if (!DataCheckingUtils.isNumber(scheduled)) {
-                scheduled = "-2";
-            }
-            int scheduledInteger = Integer.valueOf(scheduled);
-            object.setFlightScheduledTime(scheduledInteger);
+        if (!DataCheckingUtils.isNumber(actualTimeString)) {
+            actualTimeString = "-2";
         }
+        //Change string int
+        int actualTime = Integer.valueOf(actualTimeString);
+        //Convert time to int value
+        int convertedToMilitary = DataCheckingUtils.convertTimeToMilitary(actualTime, hasPm);
 
-
-        //Get actual flight
-        String actual;
-        int actualColon = currentString.indexOf(":", timeIndex + 1);
-        if (actualColon<0){
-            actual = "-2";
-        }else {
-            actual = currentString.substring(actualColon - 2, actualColon + 3);
-            actual = actual.replace(":", "");
-            if (!DataCheckingUtils.isNumber(actual)) {
-                actual = "-2";
-            }
-        }
-
-        int actualInteger = Integer.valueOf(actual);
-        object.setActualArrivalTime(actualInteger);
-
-        //Get Status
-        int indexStatusStart = parseString.indexOf("flight_status");
-        int indexStatusEnd = parseString.indexOf("/h2", indexStart);
-
-        String statusSting  = null;
-        try {
-            statusSting = parseString.substring(indexStatusStart, indexStatusEnd);
-        } catch (Exception e) {
-            e.printStackTrace();
-            FlightObject flightObject = new FlightObject();
-            return flightObject;
-        }
-
-
-
-        String statusString = ExtractFlightUtilities.getStatus(currentString);
-        object.setFlightStatus(statusString);
-
+        object.setActualArrivalTime(convertedToMilitary);
 
         return object;
-
-
-
     }
 
     //get inforamtion for a single flight.

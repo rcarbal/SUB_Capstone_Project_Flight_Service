@@ -10,7 +10,7 @@ import com.example.rcarb.flightservice.utilities.IntentActions;
  * Created by rcarb on 3/15/2018.
  */
 
-public class ElevenPmAlarmReceiver extends BroadcastReceiver {
+public class TenPmAlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 

@@ -46,7 +46,17 @@ public class DataCheckingUtils {
             object.setHour(hour);
             int minute = Integer.parseInt(timeLength.substring(2, timeLength.length()));
             object.setMinute(minute);
-        } else if (time == 0) {
+        }else if (time > 2399){
+            String timeLength = String.valueOf(time);
+
+
+            int hour = Integer.parseInt(timeLength.substring(0, 2));
+            object.setHour(hour);
+            int minute = Integer.parseInt(timeLength.substring(2, timeLength.length()));
+            object.setMinute(minute);
+        }
+
+        else if (time == 0) {
             object.setHour(0);
             object.setMinute(0);
         } else {
@@ -54,6 +64,17 @@ public class DataCheckingUtils {
             object.setMinute(-1);
         }
         return object;
+    }
+    public static int convertTimeObjectToInt(FlightTimeObject object){
+        int returnedInt = -2;
+        if (object!= null){
+            String concat = "";
+            String hour = String.valueOf(object.getHour());
+            String minute = String.valueOf(object.getMinute());
+            concat = ""+hour+minute;
+            returnedInt = Integer.valueOf(concat);
+        }
+        return returnedInt;
     }
 
     public static FlightTimeObject getConvertedTimeWithPm(int time, boolean pm) {
@@ -118,6 +139,8 @@ public class DataCheckingUtils {
         return object;
     }
 
+
+    //adds a day to time.
     public static Calendar adjustAlarmTime(Calendar alarmTimeCalendar) {
         Calendar current = Calendar.getInstance();
         Calendar adjustedDateCalendar = Calendar.getInstance();
@@ -170,37 +193,77 @@ public class DataCheckingUtils {
         } else if (initialHour == 22 || initialHour == 23) {
             numberOfAlarmsReturned = 0;
         }
-        return numberOfAlarmsReturned;
+        return numberOfAlarmsReturned-1;
     }
 
-    public static int converCalendarToInt(Calendar calendar){
+    public static int converCalendarToInt(Calendar calendar) {
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
         String stringMinute = "";
-        if (minute < 10){
+        if (minute < 10) {
             String a = String.valueOf(minute);
-            String b ="0";
-            stringMinute= ""+b+a;
-        }else {
+            String b = "0";
+            stringMinute = "" + b + a;
+        } else {
             stringMinute = String.valueOf(minute);
         }
 
         String stringHour = String.valueOf(hour);
 
 
-        String timeConc =""+stringHour+stringMinute;
+        String timeConc = "" + stringHour + stringMinute;
 
         return Integer.valueOf(timeConc);
     }
 
-    public static int convertPassedMidnight(int time){
-        if (time < 60){
-            return 2400+time;
-        }else if (time > 100 && time < 200){
-            time = time %100;
+    public static int convertPassedMidnight(int time) {
+        if (time < 60) {
+            return 2400 + time;
+        } else if (time > 100 && time < 400) {
+            time = time % 100;
             return time + 2500;
         }
         return time;
     }
 
+    //Changes time to 24 military time
+    public static int convertTimeToMilitary(int time, boolean pm) {
+        int returnTime = -2;
+        if (!pm) {
+            //12:00 am
+            if (time < 1300 && time > 1199) {
+                returnTime = time % 100;
+                //1:00am - 11:59am
+            } else if (time > 99 && time < 1200) {
+                returnTime = time;
+            }
+        } else if (pm) {
+            //12:00 pm - 12:59
+            if (time < 1300 && time > 1199) {
+                returnTime = time;
+                //1:00 pm - 9:59 pm
+            } else if (time > 99 && time < 1200) {
+                int remainder = time % 100;
+                int adjustTime = time - remainder;
+                adjustTime = adjustTime + 1200;
+                adjustTime = adjustTime + remainder;
+                returnTime = adjustTime;
+            }
+        }
+        return returnTime;
+    }
+
+    public static int convertTimeThatPassedMidnightToProperTime(int time){
+        int rTime=-1;
+        if (time == 24){
+            rTime =0;
+        }else if (time == 25){
+            rTime =1;
+        }else if (time == 26){
+            rTime = 2;
+        }else if (time == 27){
+            rTime = 3;
+        }
+        return rTime;
+    }
 }

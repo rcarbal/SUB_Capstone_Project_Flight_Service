@@ -10,15 +10,17 @@ public class FlightSyncObject {
     private int hour;
     private int twoHour;
     private String stamp;
+    private String totalFlights;
 
     public FlightSyncObject() {
             }
 
-    public FlightSyncObject(int thirty, int hour, int twohour, String stamp){
+    public FlightSyncObject(int thirty, int hour, int twohour, String stamp, String totalFlights){
         this.thirty = thirty;
         this.hour = hour;
         this.twoHour = twohour;
         this.stamp = stamp;
+        this.totalFlights = totalFlights;
     }
 
     public void setThirty(int thirty){
@@ -44,5 +46,11 @@ public class FlightSyncObject {
     }
     public String getStamp(){
         return stamp;
+    }
+    public void setTotalFlights(String totalFlights){
+        this.totalFlights = totalFlights;
+    }
+    public String getTotalFlights(){
+        return totalFlights;
     }
 }

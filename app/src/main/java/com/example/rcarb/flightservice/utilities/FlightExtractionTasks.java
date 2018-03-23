@@ -1,6 +1,5 @@
 package com.example.rcarb.flightservice.utilities;
 
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -15,7 +14,6 @@ import com.example.rcarb.flightservice.objects.FlightObject;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Objects;
 
 /**
  * Created by rcarb on 2/20/2018.
@@ -24,7 +22,7 @@ import java.util.Objects;
 public class FlightExtractionTasks {
     //Task for extracting flight information.
     public static final String ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION = "extract-single-flight";
-    public static final String ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE = "single-parse-re-aprese";
+    public static final String ACTION_EXTRACT_FLIGHTS_NO_ALARM = "single-parse-re-aprese";
     public static final String SAVE_FLIGHTS_TO_DATABASE = "save-flights";
     public static final String ACTION_DATABASE_UPDATE_STATUS = "database-update-status";
     public static final String ACTION_GET_STATUS_OF_FLIGHT = "get-status-of-flight";
@@ -46,12 +44,13 @@ public class FlightExtractionTasks {
                                    String flightStatus,
                                    FlightObject flightObject,
                                    String initial,
-                                   int requestCode) {
+                                   int requestCode,
+                                   int scheduleTime) {
 
         String initialCheck = initial;
         if (ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION.equals(action)) {
-            extractSingleFlight(context, id, flightName, flightStatus);
-        } else if (ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE.equals(action)) {
+            extractSingleFlight(context, id, flightName, flightStatus, requestCode, scheduleTime);
+        } else if (ACTION_EXTRACT_FLIGHTS_NO_ALARM.equals(action)) {
             getFlightsExcludedLandedCancelledWithNoAlarm(context, initial);
         } else if (SAVE_FLIGHTS_TO_DATABASE.equals(action)) {
             saveFlightsTodatabase(arrayList, context, initial);
@@ -126,31 +125,18 @@ public class FlightExtractionTasks {
                 int hour = calendar.get(Calendar.HOUR_OF_DAY);
                 int minute = calendar.get(Calendar.MINUTE);
 
-                if (hour == 23 && minute > 0) {
-                    ArrayList<FlightObject> mergeArray = new ArrayList<>();
+            } else {
 
-                    //Extract the flights that are less 159
-                    for (int i = 0; i < arrayList.size(); i++) {
-                        FlightObject object = new FlightObject();
-                        object = arrayList.get(i);
+                ArrayList<CompareFlightObject> compare = getFlightsComapare(context);
 
-                        int time = -2;
-                        int scheduled = object.getFlightScheduledTime();
-                        int actual = object.getActualArrivalTime();
+                int numberOfSavedFlights = 0;
+                for (int i = 0; i < arrayList.size(); i++) {
+                    FlightObject flight = arrayList.get(i);
 
-                        if (actual == -2) {
-                            time = scheduled;
-                        } else {
-                            time = actual;
-                        }
-                        if (time < 159) {
-                            mergeArray.add(object);
-                        }
-                    }
-                    //Add the flights to the database
-                    int numberOfSavedFlights = 0;
-                    for (int i = 0; i < mergeArray.size(); i++) {
-                        FlightObject flight = arrayList.get(i);
+                    //get FlightName
+                    String flightName = flight.getFlightName();
+                    boolean compareNames = checkFlightName(flightName, compare);
+                    if (!compareNames) {
 
                         ContentValues cv = new ContentValues();
                         cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_DATE, ExtractFlightUtilities.getDate());
@@ -164,57 +150,98 @@ public class FlightExtractionTasks {
 
                         Uri flightUri = context.getContentResolver().insert(FlightContract.FlightEntry.
                                 BASE_CONTENT_URI_FLIGTHS, cv);
+
+
                         if (flightUri != null) {
                             numberOfSavedFlights++;
                         }
-                        //Send broadcast
-                        if (numberOfSavedFlights > 0) {
-
-                            Intent databaseFailedIntent = new Intent(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
-                            databaseFailedIntent.putExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, numberOfSavedFlights);
-                            context.sendBroadcast(databaseFailedIntent);
-                        } else if (numberOfSavedFlights == 0) {
-                            Log.e("Recipe insert", "Uri insert unssuccessful");
-                            Intent databaseFailedIntent = new Intent(IntentActions.DATABASE_FLIGHT_INSERTED_FAILURE);
-                            context.sendBroadcast(databaseFailedIntent);
-
-                        }
                     }
-                } else {
+                }
 
-                    ArrayList<CompareFlightObject> compare = getFlightsComapare(context);
+                //Send broadcast
+                if (numberOfSavedFlights > 0) {
 
-                    int numberOfSavedFlights = 0;
-                    for (int i = 0; i < arrayList.size(); i++) {
-                        FlightObject flight = arrayList.get(i);
+                    Intent databaseFailedIntent = new Intent(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
+                    databaseFailedIntent.putExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, numberOfSavedFlights);
+                    context.sendBroadcast(databaseFailedIntent);
+                } else if (numberOfSavedFlights == 0) {
+                    Log.e("Recipe insert", "Uri insert unssuccessful");
+                    Intent databaseFailedIntent = new Intent(IntentActions.DATABASE_FLIGHT_INSERTED_FAILURE);
+                    context.sendBroadcast(databaseFailedIntent);
+                }
+            }
 
-                        //get FlightName
-                        String flightName = flight.getFlightName();
-                        boolean compareNames = checkFlightName(flightName, compare);
-                        if (!compareNames) {
+        } else if (initial.equals(IntentActions.ACTION_INTENT_PARSE_CONCATINATE)) {
+            if (arrayList != null) {
+                //Get instance of time
+                Calendar calendar = Calendar.getInstance();
+                int hour = calendar.get(Calendar.HOUR_OF_DAY);
+                int minute = calendar.get(Calendar.MINUTE);
+                int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar);
 
-                            ContentValues cv = new ContentValues();
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_DATE, ExtractFlightUtilities.getDate());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_NUMBER, flight.getFlightName());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_GATE, flight.getGate());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_AIRLINE, flight.getAirline());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE, flight.getFlightScheduledTime());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL, flight.getActualArrivalTime());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS, flight.getFlightStatus());
-                            cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_ALARM_SET, flight.getAlarm());
+                //Create the arraylist that willbe used to store all the flights
+                ArrayList<FlightObject> mergeArray = new ArrayList<>();
 
-                            Uri flightUri = context.getContentResolver().insert(FlightContract.FlightEntry.
-                                    BASE_CONTENT_URI_FLIGTHS, cv);
+                //{arse through all the flights
+                for (int i = 0; i < arrayList.size(); i++) {
+                    FlightObject object = arrayList.get(i);
 
+                    //Variables that will be used to compare.
+                    int time = -2;
+                    int scheduled = object.getFlightScheduledTime();
+                    int actual = object.getActualArrivalTime();
 
-                            if (flightUri != null) {
-                                numberOfSavedFlights++;
+                    //Time to compare set
+                    if (actual == -2) {
+                        time = scheduled;
+                    } else {
+                        time = actual;
+                    }
+                    //if the arrival/schedule time is greater than the instance
+                    if (time > convertedCalendar) {
+                        mergeArray.add(object);
+                        //If the time is less than the instance.
+                    } else if (time < convertedCalendar) {
+                        if (time < 460) {
+                            if (scheduled != -2) {
+                                int scheduleMilitary = DataCheckingUtils.convertPassedMidnight(scheduled);
+                                object.setFlightScheduledTime(scheduleMilitary);
                             }
+                            if (actual != -2) {
+                                int actualMilitary = DataCheckingUtils.convertPassedMidnight(actual);
+                                object.setActualArrivalTime(actualMilitary);
+                            }
+                            mergeArray.add(object);
                         }
                     }
+                }
 
+                //save to database
+                //Add the flights to the database
+                int numberOfSavedFlights = 0;
+                for (int i = 0; i < mergeArray.size(); i++) {
+
+                    FlightObject flight = arrayList.get(i);
+
+                    ContentValues cv = new ContentValues();
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_DATE, ExtractFlightUtilities.getDate());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_NUMBER, flight.getFlightName());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_GATE, flight.getGate());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_AIRLINE, flight.getAirline());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE, flight.getFlightScheduledTime());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL, flight.getActualArrivalTime());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS, flight.getFlightStatus());
+                    cv.put(FlightContract.FlightEntry.COLUMN_FLIGHT_ALARM_SET, flight.getAlarm());
+
+                    Uri flightUri = context.getContentResolver().insert(FlightContract.FlightEntry.
+                            BASE_CONTENT_URI_FLIGTHS, cv);
+                    if (flightUri != null) {
+                        numberOfSavedFlights++;
+                    }
+                }
                     //Send broadcast
                     if (numberOfSavedFlights > 0) {
+
 
                         Intent databaseFailedIntent = new Intent(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
                         databaseFailedIntent.putExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, numberOfSavedFlights);
@@ -225,12 +252,11 @@ public class FlightExtractionTasks {
                         context.sendBroadcast(databaseFailedIntent);
 
                     }
-
                 }
             }
-
         }
-    }
+
+
 
     private static ArrayList<CompareFlightObject> getFlightsComapare(Context context) {
         String[] projection = {FlightContract.FlightEntry.COLUMN_FLIGHT_NUMBER,
@@ -472,11 +498,10 @@ public class FlightExtractionTasks {
         int scheduled = object.getFlightScheduledTime();
         int actual = object.getActualArrivalTime();
         long id = object.getColumnId();
-        String status = object.getFlightStatus();
+        String status = object.getPostStatus();
 
         ContentValues contentValues = new ContentValues();
         contentValues.put(FlightContract.FlightEntry._ID, id);
-        contentValues.put(FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE, scheduled);
         contentValues.put(FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL, actual);
         contentValues.put(FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS, status);
 
@@ -541,191 +566,96 @@ public class FlightExtractionTasks {
     }
 
     //Method to extract flight
-    private static void extractSingleFlight(Context context, long id, String flight, String status) {
+    private static void extractSingleFlight(Context context, long id, String flight, String status,
+                                            int extractTime, int scheduleTime) {
         FlightObject main = new FlightObject();
+        main.setFlightStatus(status);
+        main.setColumnId(id);
+        main.setFlightName(flight);
         String currentStatus = status;
         String flightName = flight;
+        int scheduleTimeExt = scheduleTime;
+        int timeTOExtract = extractTime;
 
 
         String site = "https://www.airport-la.com/lax/flight?flight_arrival=" + flight;
         String parseString = ExtractFlightUtilities.getFlightInfoFromWeb(site);
         FlightObject firstCompare = ExtractFlightUtilities.getInfoForSIngleFlightSite1(parseString);
+
         firstCompare.setFlightName(flight);
         firstCompare.setColumnId(id);
+        int arrival = firstCompare.getActualArrivalTime();
 
+        String postStatus = firstCompare.getPostStatus();
+        boolean parseSecondSite = false;
+        if (postStatus.equals(status)) {
+            parseSecondSite = true;
+        }
 
-//        FlightObject secondCompare = null;
-//        boolean parsedSecond = false;
+        FlightObject secondObject = null;
 
-//        if (flightStatus.equals(currentStatus)){
-//            String site2 = "https://www.los-angeles-airport.com/lax-flight-arrival/"+flight;
-//            String parseSecondString = ExtractFlightUtilities.getFlightInfoFromWeb(site2);
-//            secondCompare = ExtractFlightUtilities.getInfoForSingleFlightsSite2(parseSecondString);
-//            secondCompare.setFlightName(flight);
-//            secondCompare.setColumnId(id);
-//            parsedSecond = true;
-//        }
-
-
-//        if (parsedSecond){
-//
-//            String firstStatus = flightStatus;
-//            String secondStatus = secondCompare.getFlightStatus();
-//
-//            if (!firstStatus.equals(secondStatus)){
-//                //null second
-//                if (firstStatus.equals("null")|| secondStatus.equals("Scheduled") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("null")|| secondStatus.equals("En Route") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("null")|| secondStatus.equals("Landed") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("null")|| secondStatus.equals("Cancelled") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//
-//                //null first
-//                else if (firstStatus.equals("Scheduled")|| secondStatus.equals("null") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("En Route")|| secondStatus.equals("null") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Landed")|| secondStatus.equals("null") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Cancelled")|| secondStatus.equals("null") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//
-//                //error first
-//                else if (firstStatus.equals("Scheduled")|| secondStatus.equals("error") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("En Route")|| secondStatus.equals("error") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Landed")|| secondStatus.equals("error") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Cancelled")|| secondStatus.equals("error") ){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//
-//                //error second
-//                else if (firstStatus.equals("error")|| secondStatus.equals("Scheduled") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("error")|| secondStatus.equals("En Route") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("error")|| secondStatus.equals("Landed") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("error")|| secondStatus.equals("Cancelled") ){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//
-//                //Scheduled first
-//                else if (firstStatus.equals("Scheduled") && secondStatus.equals("En Route")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//
-//                else if (firstStatus.equals("Scheduled") && secondStatus.equals("Landed")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("Scheduled") && secondStatus.equals("Cancelled")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                //Scheduled Second
-//                else if (firstStatus.equals("En Route") && secondStatus.equals("Scheduled")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Landed") && secondStatus.equals("Scheduled")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Cancelled") && secondStatus.equals("Scheduled")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//
-//                //En Route First
-//                else if (firstStatus.equals("En Route") && secondStatus.equals("Landed")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//                else if (firstStatus.equals("En Route") && secondStatus.equals("Cancelled")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//
-//                //En Route Second
-//                else if (firstStatus.equals("Landed") && secondStatus.equals("En Route")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//                else if (firstStatus.equals("Cancelled") && secondStatus.equals("En Route")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//
-//                //Landed First
-//                else if (firstStatus.equals("Landed") && secondStatus.equals("Cancelled")){
-//                    main = null;
-//                    main = secondCompare;
-//                }
-//
-//                //landed second
-//                else if (firstStatus.equals("Cancelled") && secondStatus.equals("Landed")){
-//                    main = null;
-//                    main = firstCompare;
-//                }
-//
-//            }
-//
-//
-//        }
-        main = firstCompare;
-        main.setFlightStatus(status);
-        String flightStatus = firstCompare.getFlightStatus();
-        flightStatus = main.getPostStatus();
-
+        if (parseSecondSite) {
+            String laxOfficial = "https://www.flylax.com/en/flight-info?fn=" + flight + "&type=arr";
+            String secondObjectParse = ExtractFlightUtilities.getFlightInfoFromWeb(laxOfficial);
+            secondObject = ExtractFlightUtilities.getInfoForSingleFlightsSite2(secondObjectParse);
+        }
         boolean setupSecondAlarm = false;
+        boolean passedDalyed = false;
+        boolean cancelFlight = false;
+        boolean nextDay = false;
+        int secondTIme = -2;
+        if (secondObject != null) {
+            secondTIme = secondObject.getActualArrivalTime();
+        }
+        main.setPostStatus(postStatus);
+        main.setActualArrivalTime(secondTIme);
+        //Current time
+        Calendar calendar = Calendar.getInstance();
+        int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar);
+        int firstDelay = timeTOExtract - convertedCalendar;
 
-        switch (flightStatus) {
-            case "Scheduled":
+
+//        String flightStatus = postStatus;
+//
+//        switch (flightStatus) {
+//            case "Scheduled":
+//                setupSecondAlarm = true;
+//                break;
+//            case "En Route":
+//                setupSecondAlarm = true;
+//                break;
+//            case "error":
+//                setupSecondAlarm = true;
+//                break;
+//        }
+        //If flight time is less than current time set alarm.
+        int delaySaved = -2;
+        if (secondTIme != -2) {
+            if (convertedCalendar >= secondTIme) {
+                //If delay is less than 4 hours.
+                int delay = secondTIme - convertedCalendar;
+                delaySaved = delay;
+                if (delay > -400) {
+                    //set alarm.
+                    setupSecondAlarm = true;
+
+                } else {
+                    cancelFlight = true;
+                    main.setPostStatus("unconfirmed");
+                }
+            }
+        } else if (convertedCalendar <= secondTIme) {
+            //flight hasn't landed
+            setupSecondAlarm = true;
+
+        }
+
+        //if its passed 2000
+        if (scheduleTime > 2200) {
+            if (timeTOExtract < 60) {
                 setupSecondAlarm = true;
-                break;
-            case "En Route":
-                setupSecondAlarm = true;
-                break;
-            case "error":
-                setupSecondAlarm = true;
-                break;
+                nextDay = true;
+            }
         }
 
 
@@ -734,6 +664,7 @@ public class FlightExtractionTasks {
             //setup second alarm.
             Intent intent = new Intent(IntentActions.ACTION_SETUP_SECOND_ALARM);
             intent.putExtra(IntentActions.INTENT_SEND_PARCEL_FOR_SECOND_ALARM, main);
+            intent.putExtra(IntentActions.INTENT_SEND_BOOLEAN, nextDay);
             context.sendBroadcast(intent);
         }
         //Update the database with the new information

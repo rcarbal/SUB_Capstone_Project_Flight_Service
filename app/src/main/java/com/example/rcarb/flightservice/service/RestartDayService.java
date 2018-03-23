@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.Nullable;
 
-import com.example.rcarb.flightservice.receivers.ElevenPmAlarmReceiver;
 import com.example.rcarb.flightservice.receivers.RestartDayReceiver;
 
 import java.util.Calendar;

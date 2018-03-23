@@ -30,7 +30,7 @@ import com.example.rcarb.flightservice.service.FlightIntentService;
 import com.example.rcarb.flightservice.service.RestartDayService;
 import com.example.rcarb.flightservice.service.SecondAlarmService;
 import com.example.rcarb.flightservice.service.AllDayAlarmService;
-import com.example.rcarb.flightservice.service.SetupElevenPmAlarmService;
+import com.example.rcarb.flightservice.service.SetupTenPmAlarmService;
 import com.example.rcarb.flightservice.service.SetupTimeFrameService;
 import com.example.rcarb.flightservice.utilities.DataCheckingUtils;
 import com.example.rcarb.flightservice.utilities.FlightExtractionTasks;
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mFireBaseDatabase= FirebaseDatabase.getInstance();
+        mFireBaseDatabase = FirebaseDatabase.getInstance();
         mDatabaseReference = mFireBaseDatabase.getReference().child("flight");
 
         //ReminderUtilities.scheduleFlightUpdate(this);
@@ -182,9 +182,10 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        setupElevenPmAlarm();
-        setRestart();
+        setupTenPmAlarm();
+        //setRestart();
         checkTimeFrame();
+        setupAlarmsForDay();
     }
 
     public void setRestart() {
@@ -205,8 +206,8 @@ public class MainActivity extends AppCompatActivity {
         startService(setupDaysAlarm);
     }
 
-    public void setupElevenPmAlarm() {
-        Intent setupElevenPmAlarm = new Intent(MainActivity.this, SetupElevenPmAlarmService.class);
+    public void setupTenPmAlarm() {
+        Intent setupElevenPmAlarm = new Intent(MainActivity.this, SetupTenPmAlarmService.class);
         startService(setupElevenPmAlarm);
     }
 
@@ -222,14 +223,14 @@ public class MainActivity extends AppCompatActivity {
         alarmCheckTimeFrame();
     }
 
-    public void startConcatenateParse() {
+    public void startConcatenateParse(View view) {
         mArrayList = new ArrayList<>();
-        loaderCount = 2;
+        loaderCount = 3;
         arrayIndex = 0;
         updateArrayCount = 0;
         parsingConcatenate = true;
         totalNumberOFFlights = 0;
-        String parseString = FlightUriBuilder.buildUri(1);
+        String parseString = "https://www.airport-la.com/lax/arrivals";
         startAlarmFlightExtraction(parseString);
     }
 
@@ -396,12 +397,39 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
 
+
             String action = intent.getAction();
             String label = intent.getStringExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL);
 
             if (action.equals(IntentActions.FLIGHT_EXTRACTED_DONE)) {
-                if (label.equals(IntentActions.INTENT_INITIAL)) {
+                if (!parsingConcatenate) {
+                    if (label.equals(IntentActions.INTENT_INITIAL)) {
 
+                        ArrayList<FlightObject> arraySend = mArrayList;
+
+                        Intent saveTodatabase = new Intent(MainActivity.this,
+                                FlightIntentService.class);
+                        saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
+                        saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
+                                arraySend);
+                        saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
+                        taskText.setText(R.string.tv_task_saving_to_databse);
+                        startService(saveTodatabase);
+                    } else if (label.equals("")) {
+
+                        ArrayList<FlightObject> arraySend = mArrayList;
+
+                        Intent saveTodatabase = new Intent(MainActivity.this,
+                                FlightIntentService.class);
+                        saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
+                        saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
+                                arraySend);
+                        saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                        taskText.setText(R.string.tv_task_saving_to_databse);
+                        startService(saveTodatabase);
+                    }
+
+                } else if (parsingConcatenate) {
                     ArrayList<FlightObject> arraySend = mArrayList;
 
                     Intent saveTodatabase = new Intent(MainActivity.this,
@@ -409,26 +437,16 @@ public class MainActivity extends AppCompatActivity {
                     saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
                     saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
                             arraySend);
-                    saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, IntentActions.INTENT_INITIAL);
-                    taskText.setText(R.string.tv_task_saving_to_databse);
-                    startService(saveTodatabase);
-                } else if (label.equals("")) {
-
-                    ArrayList<FlightObject> arraySend = mArrayList;
-
-                    Intent saveTodatabase = new Intent(MainActivity.this,
-                            FlightIntentService.class);
-                    saveTodatabase.setAction(FlightExtractionTasks.SAVE_FLIGHTS_TO_DATABASE);
-                    saveTodatabase.putParcelableArrayListExtra(IntentActions.PUT_EXTRA_PARCEL_ARRAY,
-                            arraySend);
-                    saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                    saveTodatabase.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL,
+                            IntentActions.ACTION_INTENT_PARSE_CONCATINATE);
                     taskText.setText(R.string.tv_task_saving_to_databse);
                     startService(saveTodatabase);
                 }
             }
 
+
             //The flight database was save sucecessfully.
-            else if (action.equals(IntentActions.DATABASE_FLIGHT_INSERTED_SUCCESS)) {
+            else if (action.equals(IntentActions.DATABASE_FLIGHT_INSERTED_SUCCESS)){
                 if (label.equals(IntentActions.INTENT_INITIAL)) {
                     taskText.setText("");
 
@@ -440,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
                     taskText.setText("Getting flights for update");
                     startService(getFlightsForUpdate);
                     if (!allDayAlarmsSetup) {
-                        setupAlarmsForDay();
+//                        setupAlarmsForDay();
                     }
                 }
 
@@ -448,8 +466,12 @@ public class MainActivity extends AppCompatActivity {
             }
             //The database was not saved successfully.
             else if (action.equals(IntentActions.DATABASE_FLIGHT_INSERTED_FAILURE)) {
+                if (parsingConcatenate) {
+                    parsingConcatenate = false;
+                }
                 taskText.setText("");
                 Toast.makeText(context, "FAILED", Toast.LENGTH_SHORT).show();
+
             }
 
             //Job service success received array list of flights to be updated
@@ -459,13 +481,6 @@ public class MainActivity extends AppCompatActivity {
                 taskText.setText("");
                 ArrayList<FlightObject> arrayListParcelExtracted = intent.getParcelableArrayListExtra(
                         IntentActions.PUT_EXTRA_PARCEL_ARRAY);
-
-                //erace the next three line and uncomment following.
-//                FlightObject testOne =arrayListParcelExtracted.get(0);//***********************
-//                arrayListUpdate = new ArrayList<>();//*************************************
-//                arrayListUpdate.add(testOne);//******************************************
-
-
                 arrayListUpdate = arrayListParcelExtracted;
 
 
@@ -484,7 +499,9 @@ public class MainActivity extends AppCompatActivity {
 
                 startService(alarmIntent);
 
-            } else if (action.equals(IntentActions.ACTION_CONTINUE_SETTING_ALARMS)) {
+            } else if (action.equals(IntentActions.ACTION_CONTINUE_SETTING_ALARMS))
+
+            {
                 lowerUpdateNeed();
 
                 arrayIndex++;
@@ -519,19 +536,23 @@ public class MainActivity extends AppCompatActivity {
                     startService(alarmIntent);
                 }
 
-            } else if (action.equals(IntentActions.ACTION_CURRENT_ARRAYLIST_REQUEST_CODES_COMPLETED)) {
+            } else if (action.equals(IntentActions.ACTION_CURRENT_ARRAYLIST_REQUEST_CODES_COMPLETED))
 
-                //setupAlarmsForDay();
+            {
+
+
                 systemMessage.setText("All request code batches competed.");
 
 
-            } else if (action.equals(IntentActions.ACTION_GET_STATUS_FLIGHT)) {
+            } else if (action.equals(IntentActions.ACTION_GET_STATUS_FLIGHT)){
 
 
                 taskText.setText("Get status of flight");
                 long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
                 String flightName = intent.getStringExtra(IntentActions.INTENT_SEND_STRING);
                 String status = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
+                int time = intent.getIntExtra(IntentActions.INTENT_SEND_SECOND_INT, -2);
+                int scheduleTime = intent.getIntExtra(IntentActions.INTENT_SEND_THRID_INT, -2);
 
                 flightUpdated.setText("");
                 preUpdateStatus.setText("");
@@ -543,15 +564,17 @@ public class MainActivity extends AppCompatActivity {
                 getFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, flightId);
                 getFlightStatus.putExtra(IntentActions.INTENT_SEND_STRING_FLIGHT, flightName);
                 getFlightStatus.putExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS, status);
+                getFlightStatus.putExtra(IntentActions.INTENT_SEND_SECOND_INT, time);
+                getFlightStatus.putExtra(IntentActions.INTENT_SEND_THRID_INT, scheduleTime);
                 startService(getFlightStatus);
-            } else if (action.equals(IntentActions.ACTION_FIRST_ALARM_COMPLETE)) {
+            } else if (action.equals(IntentActions.ACTION_FIRST_ALARM_COMPLETE))
+
+            {
                 lowerFirstAlarm();
             }
 
             //Start loader that will update the database.
-            else if (action.equals(IntentActions.FLIGHT_UPDATE_DATABASE_STATUS))
-
-            {
+            else if (action.equals(IntentActions.FLIGHT_UPDATE_DATABASE_STATUS)){
                 FlightObject object = intent.getExtras().getParcelable(IntentActions.INTENT_SEND_PARCEL);
                 String name = object.getFlightName();
                 String pre = object.getFlightStatus();
@@ -568,7 +591,9 @@ public class MainActivity extends AppCompatActivity {
                 startService(updateStatus);
             }
             //sets up second alarm
-            else if (action.equals(IntentActions.ACTION_SETUP_SECOND_ALARM)) {
+            else if (action.equals(IntentActions.ACTION_SETUP_SECOND_ALARM))
+
+            {
                 taskText.setText("Setting up second alarm");
 
                 FlightObject parcelForSecondAlarm = intent.getParcelableExtra(
@@ -579,13 +604,17 @@ public class MainActivity extends AppCompatActivity {
                 startService(secondAlarmSetup);
             }
             //Second alarm was successfully setup
-            else if (action.equals(IntentActions.ACTION_SECOND_ALARM_SUCCESSUFULLY_SETUP)) {
+            else if (action.equals(IntentActions.ACTION_SECOND_ALARM_SUCCESSUFULLY_SETUP))
+
+            {
                 taskText.setText("");
                 mSecondAlarm++;
                 alarmsForReUpdating.setText("" + mSecondAlarm);
 
 
-            } else if (action.equals(IntentActions.ACTION_GET_SECOND_STATUS_FLIGHT)) {
+            } else if (action.equals(IntentActions.ACTION_GET_SECOND_STATUS_FLIGHT))
+
+            {
                 taskText.setText("Getting second status");
 
                 long flightId = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
@@ -603,12 +632,16 @@ public class MainActivity extends AppCompatActivity {
                 getSeconfFlightStatus.putExtra(IntentActions.INTENT_REQUEST_CODE, requestCode);
                 startService(getSeconfFlightStatus);
 
-            } else if (action.equals(IntentActions.ACTION_SECOND_ALARM_COMPLETE)) {
+            } else if (action.equals(IntentActions.ACTION_SECOND_ALARM_COMPLETE))
+
+            {
                 taskText.setText("");
                 mSecondAlarm--;
                 alarmsForReUpdating.setText("" + mSecondAlarm);
 
-            } else if (action.equals(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS)) {
+            } else if (action.equals(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS))
+
+            {
                 mAlldayAlarms = intent.getIntExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, -2);
                 int hour = intent.getIntExtra(IntentActions.ACTION_SEND_INITIAL_HOUR_INT, -2);
                 if (mAlldayAlarms > 0) {
@@ -632,6 +665,9 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             } else if (action.equals(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL)) {
+                if (parsingConcatenate) {
+                    parsingConcatenate = false;
+                }
                 int newFlightNumber = intent.getIntExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, -2);
                 if (newFlightNumber > 0) {
                     for (int i = 0; i < newFlightNumber; i++) {
@@ -639,9 +675,11 @@ public class MainActivity extends AppCompatActivity {
                         countText.setText("" + count);
                     }
                     Intent getNewFlights = new Intent(MainActivity.this, FlightIntentService.class);
-                    getNewFlights.setAction(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE);
+                    getNewFlights.setAction(FlightExtractionTasks.ACTION_EXTRACT_FLIGHTS_NO_ALARM);
                     getNewFlights.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                    taskText.setText("Getting flights for update");
                     startService(getNewFlights);
+
                 }
 
             } else if (action.equals(IntentActions.ACTION_INTENT_CANCEL_ALARM)) {
@@ -664,16 +702,27 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Alarm not canceled: " + flightName, Toast.LENGTH_SHORT).show();
                 }
 
-            } else if (action.equals(IntentActions.ACTION_START_NEW_PARSE_FOR_ALL_FLIGHTS)) {
+            } else if (action.equals(IntentActions.ACTION_START_NEW_PARSE_FOR_ALL_FLIGHTS))
+
+            {
+
                 startAlarmExtractionExtraction();
 
-            } else if (action.equals(IntentActions.ACTION_GET_PARSER)) {
+            } else if (action.equals(IntentActions.ACTION_GET_PARSER))
+
+            {
                 getFlightTimeFrame();
-            } else if (action.equals(IntentActions.ACTION_START_ELEVEN_PM_PARSE)) {
-                startConcatenateParse();
-            } else if (action.equals(IntentActions.ACTION_START_RESET)) {
+            } else if (action.equals(IntentActions.ACTION_START_ELEVEN_PM_PARSE))
+
+            {
+                //startConcatenateParse();
+            } else if (action.equals(IntentActions.ACTION_START_RESET))
+
+            {
                 restartDay();
-            } else if (action.equals(IntentActions.INTENT_SEND_TOAST)) {
+            } else if (action.equals(IntentActions.INTENT_SEND_TOAST))
+
+            {
                 String message = intent.getStringExtra(IntentActions.INTENT_SEND_TOAST_MESSAGE);
                 if (message.equals("Second Alarm failed")) {
                     systemMessage.setText("Second Alarm did not close status");
@@ -771,9 +820,6 @@ public class MainActivity extends AppCompatActivity {
                         if (loaderCount > 0) {
                             pageCount++;
                             String parseString = FlightUriBuilder.buildUri(pageCount);
-                            if (parseString.equals("https://www.airport-la.com/lax/arrivals?t=1")) {
-
-                            }
                             startAlarmFlightExtraction(parseString);
                         }
                     } else {
@@ -803,6 +849,10 @@ public class MainActivity extends AppCompatActivity {
                         totalNumberOFFlights = count;
                         Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
                         broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                        if (parsingConcatenate) {
+                            parsingConcatenate = false;
+                        }
+
                         sendBroadcast(broadcastIntent);
                         Toast.makeText(MainActivity.this, "Extraction Complete", Toast.LENGTH_SHORT).show();
                     }
@@ -881,12 +931,24 @@ public class MainActivity extends AppCompatActivity {
                     if (data.getIsLastFlight()) {
                         lastFlight = true;
                         taskText.setText("");
+                        if (parsingConcatenate) {
+                            loaderCount--;
+                            if (loaderCount == 2) {
 
-                        loaderCount--;
-                        if (loaderCount > 0) {
-                            pageCount++;
-                            String parseString = FlightUriBuilder.buildUri(pageCount);
-                            startAlarmFlightExtraction(parseString);
+                                String parseString = "https://www.airport-la.com/lax/arrivals?t=1";
+                                startAlarmFlightExtraction(parseString);
+                            } else if (loaderCount == 1) {
+                                String parseString = "https://www.airport-la.com/lax/arrivals?t=2";
+                                startAlarmFlightExtraction(parseString);
+                            }
+                        } else if (!parsingConcatenate) {
+
+                            loaderCount--;
+                            if (loaderCount > 0) {
+                                pageCount++;
+                                String parseString = FlightUriBuilder.buildUri(pageCount);
+                                startAlarmFlightExtraction(parseString);
+                            }
                         }
                         //Next page
                     } else if (!data.getIsLastFlight()) {
@@ -898,6 +960,9 @@ public class MainActivity extends AppCompatActivity {
                         //Setup broadcast here
                         Intent broadcastIntent = new Intent(IntentActions.FLIGHT_EXTRACTED_DONE);
                         broadcastIntent.putExtra(IntentActions.INTENT_SEND_ALARM_PASS_LABEL, "");
+                        if (parsingConcatenate) {
+                            parsingConcatenate = true;
+                        }
                         sendBroadcast(broadcastIntent);
 
                     }
@@ -932,11 +997,28 @@ public class MainActivity extends AppCompatActivity {
                             hour1.setText("" + data.get(1));
                             hour2.setText("" + data.get(2));
                         }
-                        String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+                        String currentDateTimeString = DateFormat.getTimeInstance(DateFormat.SHORT)
+                                .format(new Date());
 
                         timeStamp.setText(currentDateTimeString);
+                        if (data.size() == 0) {
+                            data.add(0, 0);
+                            data.add(1, 0);
+                            data.add(2, 0);
+                        }
+                        if (data.size() == 1) {
+                            data.add(1, 0);
+                        }
+                        if (data.size() == 2) {
+                            data.add(1, 0);
+                            data.add(2, 0);
+                        }
 
-                        FlightSyncObject sync = new FlightSyncObject(data.get(0), data.get(1), data.get(2), currentDateTimeString);
+                        FlightSyncObject sync = new FlightSyncObject(data.get(0),
+                                data.get(1),
+                                data.get(2),
+                                currentDateTimeString,
+                                String.valueOf(count));
                         mDatabaseReference.push().setValue(sync);
 
                     }

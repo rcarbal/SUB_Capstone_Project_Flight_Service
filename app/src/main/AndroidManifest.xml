@@ -12,8 +12,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        >
+        android:theme="@style/AppTheme">
+
+
         <activity android:name=".MainActivity"
             android:screenOrientation="landscape">
             <intent-filter>
@@ -45,10 +46,8 @@
         <service android:name=".service.AlarmService"/>
         <service android:name=".service.SecondAlarmService"/>
         <service android:name=".service.AllDayAlarmService" />
-        <service android:name=".service.AllDayAlarmService"/>
         <service android:name=".service.SetupTimeFrameService" />
-        <service android:name=".service.SetupTimeFrameService"/>
-        <service android:name=".service.SetupElevenPmAlarmService"/>
+        <service android:name=".service.SetupTenPmAlarmService"/>
         <service android:name=".service.RestartDayService" />
 
         <receiver android:name=".receivers.ProcessAlarmReceiver"
@@ -59,7 +58,7 @@
             android:exported="false"/>
         <receiver android:name=".receivers.AlarmTimeFrameReceiver"
             android:exported="false"/>
-        <receiver android:name=".receivers.ElevenPmAlarmReceiver"
+        <receiver android:name=".receivers.TenPmAlarmReceiver"
             android:exported="false"/>
         <receiver android:name=".receivers.RestartDayReceiver"
             android:exported="false"/>

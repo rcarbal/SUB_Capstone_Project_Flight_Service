@@ -30,6 +30,7 @@ public class SetupFlightJobService extends JobService {
                         null,
                         null,
                         "null",
+                        -2,
                         -2);
                 return null;
             }

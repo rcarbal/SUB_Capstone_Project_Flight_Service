@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 
 import com.example.rcarb.flightservice.receivers.AllDayAlarmReciever;
 import com.example.rcarb.flightservice.utilities.DataCheckingUtils;
+import com.example.rcarb.flightservice.utilities.ExtractFlightUtilities;
 import com.example.rcarb.flightservice.utilities.IntentActions;
 
 import java.text.SimpleDateFormat;
@@ -39,8 +40,13 @@ public class AllDayAlarmService extends IntentService {
 //        else if (initialHour %2 == 0){
 //            initialHour = initialHour -1;
 //        }
+        int date = Integer.valueOf(ExtractFlightUtilities.getDate());
         int requestCode = 1;
         int systemTime = (int)System.currentTimeMillis();
+        requestCode = requestCode + initialHour;
+        requestCode = requestCode + date;
+        requestCode = requestCode + date;
+
 
 
 
@@ -69,12 +75,12 @@ public class AllDayAlarmService extends IntentService {
 
 
                 calendar.set(Calendar.SECOND, 0);
-                Calendar newCalendar = DataCheckingUtils.adjustAlarmTime(calendar);
+               // Calendar newCalendar = DataCheckingUtils.adjustAlarmTime(calendar);
 
                 assert alarmManager != null;
 
                 alarmManager.setExact(AlarmManager.RTC,
-                        newCalendar.getTimeInMillis(),
+                        calendar.getTimeInMillis(),
                         pendingIntent);
 
                 Intent processRemainingAlarms = new Intent(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS);

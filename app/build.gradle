@@ -5,7 +5,7 @@ android {
     compileSdkVersion 27
     defaultConfig {
         applicationId "com.example.rcarb.flightservice"
-        minSdkVersion 25
+        minSdkVersion 19
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
@@ -27,7 +27,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation "com.google.firebase:firebase-database:11.8.0"
-
+    compile 'com.google.android.gms:play-services-ads:11.8.0'
     //Firebase JobDispatcher.
     implementation 'com.firebase:firebase-jobdispatcher:0.8.5'
 }

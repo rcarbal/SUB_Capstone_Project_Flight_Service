@@ -32,6 +32,7 @@ public class SecondAlarmService extends IntentService {
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         FlightObject flightThatNeedsAlarm = intent.getParcelableExtra(IntentActions.INTENT_SEND_PARCEL_TO_SECOND_ALARM_SERVICE);
+        boolean nextDay = intent.getBooleanExtra(IntentActions.INTENT_SEND_BOOLEAN, false);
 
         String name = flightThatNeedsAlarm.getFlightName();
         String extractNumberFromName = name.substring(name.length() - 3, name.length());

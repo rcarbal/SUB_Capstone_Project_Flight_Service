@@ -39,6 +39,7 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     initial,
+                    -2,
                     -2);
         } else if (action.equals(FlightExtractionTasks.ACTION_GET_FLIGHTS_TO_UPDATE)) {
 
@@ -50,8 +51,9 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     initial,
+                    -2,
                     -2);
-        } else if (action.equals(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_RE_PARSE)){
+        } else if (action.equals(FlightExtractionTasks.ACTION_EXTRACT_FLIGHTS_NO_ALARM)){
 
             FlightExtractionTasks.executeTask(action,
                     null,
@@ -61,6 +63,7 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     initial,
+                    -2,
                     -2);
 
         } else if (action.equals(FlightExtractionTasks.SETUP_ALARM_FOR_FLIGHT)) {
@@ -74,12 +77,15 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     initial,
+                    -2,
                     -2);
         } else if (action.equals(FlightExtractionTasks.ACTION_EXTRACT_SINGLE_FLIGHT_INFORMATION)) {
 
             long id = intent.getLongExtra(IntentActions.INTENT_SEND_FLIGHT_COLUMN_ID, -2);
             String flight = intent.getStringExtra(IntentActions.INTENT_SEND_STRING_FLIGHT);
             String status = intent.getStringExtra(IntentActions.INTENT_SEND_FLIGHT_STATUS);
+            int time = intent.getIntExtra(IntentActions.INTENT_SEND_SECOND_INT, -2);
+            int scheduleTime = intent.getIntExtra(IntentActions.INTENT_SEND_THRID_INT, -2);
             if (id == -2 || flight.equals("")) {
 //                Intent sendToast = new Intent(IntentActions.INTENT_SEND_TOAST);
 //                sendToast.putExtra(IntentActions.INTENT_SEND_STRING, "no flight or id in alarm");
@@ -95,7 +101,8 @@ public class FlightIntentService extends IntentService {
                         status,
                         null,
                         initial,
-                        -2);
+                        time,
+                        scheduleTime);
             }
         }
 
@@ -119,7 +126,8 @@ public class FlightIntentService extends IntentService {
                         null,
                         null,
                         initial,
-                        requestCode);
+                        requestCode,
+                        -2);
             }
         }
 
@@ -135,6 +143,7 @@ public class FlightIntentService extends IntentService {
                     null,
                     null,
                     initial,
+                    -2,
                     -2);
         }
 
@@ -153,6 +162,7 @@ public class FlightIntentService extends IntentService {
                         null,
                         flight,
                         initial,
+                        -2,
                         -2);
             }
         }

@@ -7,8 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.Nullable;
 
-import com.example.rcarb.flightservice.receivers.AlarmTimeFrameReceiver;
-import com.example.rcarb.flightservice.receivers.ElevenPmAlarmReceiver;
+import com.example.rcarb.flightservice.receivers.TenPmAlarmReceiver;
 
 import java.util.Calendar;
 
@@ -16,19 +15,19 @@ import java.util.Calendar;
  * Created by rcarb on 3/15/2018.
  */
 
-public class SetupElevenPmAlarmService extends IntentService {
+public class SetupTenPmAlarmService extends IntentService {
     /**
      * Creates an IntentService.  Invoked by your subclass's constructor.
      *
      */
-    public SetupElevenPmAlarmService() {
-        super("SetupElevenPmAlarmService");
+    public SetupTenPmAlarmService() {
+        super("SetupTenPmAlarmService");
     }
 
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         int requestCode = 3;
-        Intent receiver = new Intent(this, ElevenPmAlarmReceiver.class);
+        Intent receiver = new Intent(this, TenPmAlarmReceiver.class);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this,
                 requestCode,
@@ -39,9 +38,9 @@ public class SetupElevenPmAlarmService extends IntentService {
         //Get calendar instance
         Calendar calendar = Calendar.getInstance();
 
-
-        calendar.set(Calendar.HOUR_OF_DAY, 23);
-        int minute = 0;
+        int hour = 22;
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        int minute = 1;
         calendar.set(Calendar.MINUTE, minute);
 
         assert alarmManager != null;

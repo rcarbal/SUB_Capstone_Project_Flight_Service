@@ -165,13 +165,13 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="startAlarmExtractionExtraction"
+            android:onClick="setupTenPmAlarm"
             android:text="Start Second Extraction" />
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick=""
+            android:onClick="startConcatenateParse"
             android:text="test" />
 
         <Button
