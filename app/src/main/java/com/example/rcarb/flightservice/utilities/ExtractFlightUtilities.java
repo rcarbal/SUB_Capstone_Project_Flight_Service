@@ -56,6 +56,7 @@ public class ExtractFlightUtilities {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        String a ="";
 
         return resString;
     }

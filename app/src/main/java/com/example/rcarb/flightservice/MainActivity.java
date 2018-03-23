@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean lastFlight = false;
     private boolean parsingConcatenate = false;
     private boolean allDayAlarmsSetup = false;
+    private boolean isReset = false;
 
     private FirebaseDatabase mFireBaseDatabase;
     private DatabaseReference mDatabaseReference;
@@ -179,13 +180,14 @@ public class MainActivity extends AppCompatActivity {
             loaderCount = 12;
             arrayIndex = 0;
             updateArrayCount = 0;
+            isReset = true;
 
         }
 
         setupTenPmAlarm();
         //setRestart();
         checkTimeFrame();
-        setupAlarmsForDay();
+        //setupAlarmsForDay();
     }
 
     public void setRestart() {
@@ -364,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void getFlightTimeFrame() {
+    public void getFlightTimeFrame(View view) {
         LoaderManager loaderManager = getSupportLoaderManager();
         Loader<Integer[]> getTimeFrame = loaderManager.getLoader(EXTRACT_FLIGHT_TIME_FRAME);
         if (getTimeFrame == null) {
@@ -711,7 +713,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (action.equals(IntentActions.ACTION_GET_PARSER))
 
             {
-                getFlightTimeFrame();
+               // getFlightTimeFrame();
             } else if (action.equals(IntentActions.ACTION_START_ELEVEN_PM_PARSE))
 
             {
@@ -979,7 +981,7 @@ public class MainActivity extends AppCompatActivity {
                 @NonNull
                 @Override
                 public Loader<ArrayList<Integer>> onCreateLoader(int id, @Nullable Bundle args) {
-                    return new GetFlightsTimeFrames(MainActivity.this);
+                    return new GetFlightsTimeFrames(MainActivity.this, isReset);
                 }
 
                 @Override

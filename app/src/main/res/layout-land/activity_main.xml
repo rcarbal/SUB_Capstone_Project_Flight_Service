@@ -165,14 +165,14 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="setupTenPmAlarm"
-            android:text="Start Second Extraction" />
+            android:onClick="getFlightTimeFrame"
+            android:text="PARSER" />
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="startConcatenateParse"
-            android:text="test" />
+            android:text="Start Concat" />
 
         <Button
             android:layout_width="wrap_content"

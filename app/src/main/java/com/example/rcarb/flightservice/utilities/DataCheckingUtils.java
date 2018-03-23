@@ -196,24 +196,84 @@ public class DataCheckingUtils {
         return numberOfAlarmsReturned-1;
     }
 
-    public static int converCalendarToInt(Calendar calendar) {
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        String stringMinute = "";
-        if (minute < 10) {
-            String a = String.valueOf(minute);
-            String b = "0";
-            stringMinute = "" + b + a;
-        } else {
-            stringMinute = String.valueOf(minute);
+    public static int converCalendarToInt(Calendar calendar, int minutes, int hour, boolean reset) {
+        Calendar cal = Calendar.getInstance();
+        int instanceHour = cal.get(Calendar.HOUR_OF_DAY);
+        int instMinute = cal.get(Calendar.MINUTE);
+
+
+
+
+        int timeInteger= -1;
+
+        if (reset){
+            Calendar recal = Calendar.getInstance();
+            recal.add(Calendar.HOUR_OF_DAY, hour);
+            recal.add(Calendar.MINUTE, minutes);
+
+            int hourPassed = recal.get(Calendar.HOUR_OF_DAY);
+            int minutePassed = recal.get(Calendar.MINUTE);
+
+
+
+            String resHour = String.valueOf(instanceHour);
+            String resMinute = "";
+            if (minutePassed < 10){
+                resMinute = String.valueOf(minutePassed);
+                resMinute = "0"+ resMinute;
+            }else {
+                resMinute = String.valueOf(minutePassed);
+            }
+
+            String a = ""+resHour+resMinute;
+            timeInteger = Integer.valueOf(a);
+
+        }else{
+
+            if (minutes > 0) {
+                cal.add(Calendar.MINUTE, minutes);
+            } else if (hour > 0) {
+                cal.add(Calendar.HOUR_OF_DAY, hour);
+            }
+            int min = cal.get(Calendar.MINUTE);
+            int hours = cal.get(Calendar.HOUR_OF_DAY);
+            if (hours > 23) {
+                if (hours == 0) {
+                    hours = 24;
+                } else if (hours == 1) {
+                    hours = 25;
+                } else if (hours == 2) {
+                    hours = 26;
+                } else if (hour == 3) {
+                    hours = 27;
+                }
+            } else if (hours < 23) {
+                if (hours == 0) {
+                    hours = 24;
+                } else if (hours == 1) {
+                    hours = 25;
+                } else if (hours == 2) {
+                    hours = 26;
+                } else if (hour == 3) {
+                    hours = 27;
+                }
+            }
+            String hoursString = String.valueOf(hours);
+            String minutesString = "";
+            if (min <10){
+                minutesString = String.valueOf(min);
+                minutesString = "0"+minutesString;
+            }else {
+                minutesString = String.valueOf(min);
+            }
+            String returnString = "" + hoursString + minutesString;
+            timeInteger = Integer.valueOf(returnString);
+
         }
 
-        String stringHour = String.valueOf(hour);
 
 
-        String timeConc = "" + stringHour + stringMinute;
-
-        return Integer.valueOf(timeConc);
+        return timeInteger;
     }
 
     public static int convertPassedMidnight(int time) {

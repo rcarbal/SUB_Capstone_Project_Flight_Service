@@ -177,7 +177,7 @@ public class FlightExtractionTasks {
                 Calendar calendar = Calendar.getInstance();
                 int hour = calendar.get(Calendar.HOUR_OF_DAY);
                 int minute = calendar.get(Calendar.MINUTE);
-                int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar);
+                int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar,0,0, false);
 
                 //Create the arraylist that willbe used to store all the flights
                 ArrayList<FlightObject> mergeArray = new ArrayList<>();
@@ -611,7 +611,7 @@ public class FlightExtractionTasks {
         main.setActualArrivalTime(secondTIme);
         //Current time
         Calendar calendar = Calendar.getInstance();
-        int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar);
+        int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar,0,0, false);
         int firstDelay = timeTOExtract - convertedCalendar;
 
 
