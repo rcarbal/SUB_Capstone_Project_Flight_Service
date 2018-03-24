@@ -125,7 +125,6 @@ public class FlightExtractionTasks {
                 int hour = calendar.get(Calendar.HOUR_OF_DAY);
                 int minute = calendar.get(Calendar.MINUTE);
 
-            } else {
 
                 ArrayList<CompareFlightObject> compare = getFlightsComapare(context);
 
@@ -177,7 +176,7 @@ public class FlightExtractionTasks {
                 Calendar calendar = Calendar.getInstance();
                 int hour = calendar.get(Calendar.HOUR_OF_DAY);
                 int minute = calendar.get(Calendar.MINUTE);
-                int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar,0,0, false);
+                int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar, 0, 0, false);
 
                 //Create the arraylist that willbe used to store all the flights
                 ArrayList<FlightObject> mergeArray = new ArrayList<>();
@@ -239,23 +238,22 @@ public class FlightExtractionTasks {
                         numberOfSavedFlights++;
                     }
                 }
-                    //Send broadcast
-                    if (numberOfSavedFlights > 0) {
+                //Send broadcast
+                if (numberOfSavedFlights > 0) {
 
 
-                        Intent databaseFailedIntent = new Intent(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
-                        databaseFailedIntent.putExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, numberOfSavedFlights);
-                        context.sendBroadcast(databaseFailedIntent);
-                    } else if (numberOfSavedFlights == 0) {
-                        Log.e("Recipe insert", "Uri insert unssuccessful");
-                        Intent databaseFailedIntent = new Intent(IntentActions.DATABASE_FLIGHT_INSERTED_FAILURE);
-                        context.sendBroadcast(databaseFailedIntent);
+                    Intent databaseFailedIntent = new Intent(IntentActions.ACTION_NOT_INITIAL_DATABASE_SAVE_SUCCESSFUL);
+                    databaseFailedIntent.putExtra(IntentActions.INTENT_SENDING_NEW_FLIGHTS_DATABASE, numberOfSavedFlights);
+                    context.sendBroadcast(databaseFailedIntent);
+                } else if (numberOfSavedFlights == 0) {
+                    Log.e("Recipe insert", "Uri insert unssuccessful");
+                    Intent databaseFailedIntent = new Intent(IntentActions.DATABASE_FLIGHT_INSERTED_FAILURE);
+                    context.sendBroadcast(databaseFailedIntent);
 
-                    }
                 }
             }
         }
-
+    }
 
 
     private static ArrayList<CompareFlightObject> getFlightsComapare(Context context) {
@@ -611,7 +609,7 @@ public class FlightExtractionTasks {
         main.setActualArrivalTime(secondTIme);
         //Current time
         Calendar calendar = Calendar.getInstance();
-        int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar,0,0, false);
+        int convertedCalendar = DataCheckingUtils.converCalendarToInt(calendar, 0, 0, false);
         int firstDelay = timeTOExtract - convertedCalendar;
 
 

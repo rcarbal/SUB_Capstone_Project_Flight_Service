@@ -216,7 +216,7 @@ public class DataCheckingUtils {
 
 
 
-            String resHour = String.valueOf(instanceHour);
+            String resHour = String.valueOf(hourPassed);
             String resMinute = "";
             if (minutePassed < 10){
                 resMinute = String.valueOf(minutePassed);

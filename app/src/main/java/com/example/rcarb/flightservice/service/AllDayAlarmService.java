@@ -45,7 +45,7 @@ public class AllDayAlarmService extends IntentService {
         int systemTime = (int)System.currentTimeMillis();
         requestCode = requestCode + initialHour;
         requestCode = requestCode + date;
-        requestCode = requestCode + date;
+        requestCode = systemTime + requestCode;
 
 
 
@@ -82,6 +82,9 @@ public class AllDayAlarmService extends IntentService {
                 alarmManager.setExact(AlarmManager.RTC,
                         calendar.getTimeInMillis(),
                         pendingIntent);
+
+                int hourSecond = calendar.get(Calendar.HOUR_OF_DAY);
+                int minuteSecond= calendar.get(Calendar.MINUTE);
 
                 Intent processRemainingAlarms = new Intent(IntentActions.ACTION_PROCESS_REMAINING_DAILY_ALARMS);
                 processRemainingAlarms.putExtra(IntentActions.ACTION_SEND_ALL_DAY_ALARMS_INT, numberOfAlarms);

@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         setupTenPmAlarm();
         //setRestart();
         checkTimeFrame();
-        //setupAlarmsForDay();
+
     }
 
     public void setRestart() {
@@ -225,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
         alarmCheckTimeFrame();
     }
 
-    public void startConcatenateParse(View view) {
+    public void startConcatenateParse() {
         mArrayList = new ArrayList<>();
         loaderCount = 3;
         arrayIndex = 0;
@@ -366,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void getFlightTimeFrame(View view) {
+    public void getFlightTimeFrame() {
         LoaderManager loaderManager = getSupportLoaderManager();
         Loader<Integer[]> getTimeFrame = loaderManager.getLoader(EXTRACT_FLIGHT_TIME_FRAME);
         if (getTimeFrame == null) {
@@ -406,6 +406,7 @@ public class MainActivity extends AppCompatActivity {
             if (action.equals(IntentActions.FLIGHT_EXTRACTED_DONE)) {
                 if (!parsingConcatenate) {
                     if (label.equals(IntentActions.INTENT_INITIAL)) {
+                        setupAlarmsForDay();
 
                         ArrayList<FlightObject> arraySend = mArrayList;
 
@@ -713,11 +714,12 @@ public class MainActivity extends AppCompatActivity {
             } else if (action.equals(IntentActions.ACTION_GET_PARSER))
 
             {
-               // getFlightTimeFrame();
+                isReset = false;
+                getFlightTimeFrame();
             } else if (action.equals(IntentActions.ACTION_START_ELEVEN_PM_PARSE))
 
             {
-                //startConcatenateParse();
+                startConcatenateParse();
             } else if (action.equals(IntentActions.ACTION_START_RESET))
 
             {
