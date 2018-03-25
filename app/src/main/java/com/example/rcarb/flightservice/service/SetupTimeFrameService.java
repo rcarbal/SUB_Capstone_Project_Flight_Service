@@ -44,7 +44,7 @@ public class SetupTimeFrameService extends IntentService {
         assert alarmManager != null;
 
         alarmManager.setRepeating(AlarmManager.RTC,
-                calendar.getTimeInMillis(), 1000 * 60,
+                calendar.getTimeInMillis(), 1000 * 60 * 2,
                 pendingIntent);
 
 

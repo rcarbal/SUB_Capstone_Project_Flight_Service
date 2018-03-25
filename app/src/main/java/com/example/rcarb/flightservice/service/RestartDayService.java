@@ -37,10 +37,10 @@ public class RestartDayService extends IntentService {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         //Get calendar instance
         Calendar calendar = Calendar.getInstance();
-        int hour = 0;
+        int hour = 2;
         calendar.set(Calendar.HOUR_OF_DAY, hour);
 
-        int minute = 0;
+        int minute = 15;
         calendar.set(Calendar.MINUTE, minute);
         calendar.add(Calendar.DAY_OF_MONTH, 1);
 

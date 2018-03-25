@@ -11,6 +11,7 @@ import android.support.v4.content.AsyncTaskLoader;
 import com.example.rcarb.flightservice.data.FlightContract;
 import com.example.rcarb.flightservice.objects.FlightObject;
 import com.example.rcarb.flightservice.utilities.DataCheckingUtils;
+import com.example.rcarb.flightservice.utilities.FlightExtractionTasks;
 import com.example.rcarb.flightservice.utilities.IntentActions;
 
 import java.util.ArrayList;
@@ -47,25 +48,26 @@ public class GetFlightsTimeFrames extends AsyncTaskLoader {
         Calendar instanceThree = Calendar.getInstance();
         Calendar instanceToCOnvert = Calendar.getInstance();
 
-        int integerInstance = DataCheckingUtils.converCalendarToInt(instanceToCOnvert,0,0, mReset);
+        int integerInstance = DataCheckingUtils.converCalendarToInt(instanceToCOnvert, 0, 0, mReset);
 
         Calendar frame15 = instance;
         frame15.add(Calendar.MINUTE, 30);
-        int integer30 = DataCheckingUtils.converCalendarToInt(frame15,30,0, mReset);
+        int integer30 = DataCheckingUtils.converCalendarToInt(frame15, 30, 0, mReset);
 
         Calendar frame1hour = instanceTwo;
         frame1hour.add(Calendar.HOUR, 1);
-        int integer1Hour = DataCheckingUtils.converCalendarToInt(frame1hour,0,1, mReset);
+        int integer1Hour = DataCheckingUtils.converCalendarToInt(frame1hour, 0, 1, mReset);
 
         Calendar frame2hours = instanceThree;
         frame2hours.add(Calendar.HOUR, 2);
-        int integer2hour = DataCheckingUtils.converCalendarToInt(frame2hours,0,2, mReset);
+        int integer2hour = DataCheckingUtils.converCalendarToInt(frame2hours, 0, 2, mReset);
 
 
         int parseTime = integerInstance + 200;
         String[] projection = {FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL,
                 FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE,
-                FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS};
+                FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS,
+                FlightContract.FlightEntry.COLUMN_FLIGHT_NUMBER};
         String selection = FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL + " between ? and ? or " +
                 FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE + " between ? and ?";
         String[] selectionArgs = {String.valueOf(integerInstance), String.valueOf(parseTime),
@@ -78,6 +80,7 @@ public class GetFlightsTimeFrames extends AsyncTaskLoader {
                 selection,
                 selectionArgs,
                 sortOrder);
+
         if (cursor != null) {
             int nextThirty = 0;
             int nextHour = 0;
@@ -85,43 +88,83 @@ public class GetFlightsTimeFrames extends AsyncTaskLoader {
             String dump = DatabaseUtils.dumpCursorToString(cursor);
             int size = cursor.getCount();
 
+            //ArrayList that will be compared
+            ArrayList<FlightObject> useThisToComapareArray = new ArrayList<>();
+
 
             if (cursor.moveToFirst()) {
                 do {
-                    int extractedTime = -2;
+                    FlightObject object = new FlightObject();
+
                     String status = cursor.getString(cursor.getColumnIndex(
                             FlightContract.FlightEntry.COLUMN_FLIGHT_STATUS));
+                    object.setFlightStatus(status);
+
                     int extractedActualTime = cursor.getInt(cursor.getColumnIndex(
                             FlightContract.FlightEntry.COLUMN_FLIGHT_TIME_ACTUAL));
+                    object.setActualArrivalTime(extractedActualTime);
+
                     int extractedScheduledTime = cursor.getInt(cursor.getColumnIndex(
                             FlightContract.FlightEntry.COLUMN_FLIGHT_SCHEDULE));
-                    if (extractedActualTime == -2) {
-                        extractedTime = extractedScheduledTime;
-                    } else {
-                        extractedTime = extractedActualTime;
-                    }
+                    object.setFlightScheduledTime(extractedScheduledTime);
+
+                    String fligthName = cursor.getString(cursor.getColumnIndex(
+                            FlightContract.FlightEntry.COLUMN_FLIGHT_NUMBER));
+                    object.setFlightName(fligthName);
 
                     if (status.equals("En Route") || status.equals("Scheduled")) {
-                        if (extractedTime > integerInstance) {
-                            if (extractedTime <= integer30) {
-                                nextThirty++;
-                                nextHour++;
-                                nextTwoHour++;
-                            } else if (extractedTime > integer30 && extractedTime <= integer1Hour) {
-                                nextHour++;
-                                nextTwoHour++;
-                            } else if (extractedTime > integer1Hour && extractedTime <= integer2hour) {
-                                nextTwoHour++;
-                            }
-                        }
+                        useThisToComapareArray.add(object);
                     }
-
                 } while (cursor.moveToNext());
             }
+            //Check if there are multiple flights.
+            for (int i = 0; i < useThisToComapareArray.size(); i++) {
+                FlightObject object = useThisToComapareArray.get(i);
+                int actual = object.getActualArrivalTime();
+                int schedule = object.getFlightScheduledTime();
+                String name = object.getFlightName();
+                int parseTIme = -2;
+
+                if (actual == -2) {
+                    parseTIme = schedule;
+                } else {
+                    parseTIme = actual;
+                }
+                if (integerInstance > 2000) {
+                    if (parseTIme < 399){
+                        parseTIme = DataCheckingUtils.convertPassedMidnight(parseTIme);
+                    }
+
+                }
+                int extractedTime = parseTIme;
+                if (extractedTime > integerInstance) {
+                    if (extractedTime <= integer30) {
+                        nextThirty++;
+                        nextHour++;
+                        nextTwoHour++;
+                    }
+                    if (extractedTime > integer30 && extractedTime <+ integer1Hour) {
+                        nextHour++;
+                        nextTwoHour++;
+
+                    } else if (extractedTime >integer1Hour && extractedTime <= integer2hour) {
+                        nextTwoHour++;
+                    }
+
+                }
+
+
+
+            }
+
+
             frame.add(nextThirty);
             frame.add(nextHour);
             frame.add(nextTwoHour);
+
+
         }
+
         assert cursor != null;
         cursor.close();
 

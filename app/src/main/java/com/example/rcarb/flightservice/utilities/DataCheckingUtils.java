@@ -70,7 +70,13 @@ public class DataCheckingUtils {
         if (object!= null){
             String concat = "";
             String hour = String.valueOf(object.getHour());
+            if (object.getHour()== -1){
+                hour = "0";
+            }
             String minute = String.valueOf(object.getMinute());
+            if (object.getMinute() == -1){
+                minute = "0";
+            }
             concat = ""+hour+minute;
             returnedInt = Integer.valueOf(concat);
         }

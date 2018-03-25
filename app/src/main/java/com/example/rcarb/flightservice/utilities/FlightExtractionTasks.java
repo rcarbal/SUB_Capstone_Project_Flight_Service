@@ -289,11 +289,22 @@ public class FlightExtractionTasks {
         return array;
     }
 
-    private static boolean checkFlightName(String flightName, ArrayList<CompareFlightObject> arrayList) {
+    public static boolean checkFlightName(String flightName, ArrayList<CompareFlightObject> arrayList) {
         boolean flightFound = false;
         for (int i = 0; i < arrayList.size(); i++) {
             CompareFlightObject compareFlightObject = arrayList.get(i);
             String compareName = compareFlightObject.getFlight();
+            if (compareName.equals(flightName)) {
+                flightFound = true;
+            }
+        }
+        return flightFound;
+    }
+    public static boolean checkFlightNameFLightObject(String flightName, ArrayList<FlightObject> arrayList) {
+        boolean flightFound = false;
+        for (int i = 0; i < arrayList.size(); i++) {
+            FlightObject compareFlightObject = arrayList.get(i);
+            String compareName = compareFlightObject.getFlightName();
             if (compareName.equals(flightName)) {
                 flightFound = true;
             }
